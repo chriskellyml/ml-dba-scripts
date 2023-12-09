@@ -23,7 +23,7 @@ main() {
     echo "Retrieving replica/foreign cluster properties"
     REPLICA_PROPERTIES=$(getClusterProperties $REPLICA_HOST $REPLICA_ADMIN $REPLICA_PASS $PROTOCOL)
 
-    REPLICA_CLUSTER_NAME=`echo $REPLICA_PROPERTIES | jq -r '."cluster-name"'`
+    REPLICA_CLUSTER_NAME=$(echo $REPLICA_PROPERTIES | grep -o '"cluster-name":"[^"]*"' | cut -d: -f2 | tr -d '"')
     echo "Replica/foreign cluster name is $REPLICA_CLUSTER_NAME"
 
     NEW_PRIMARY=$(echo $PRIMARY_PROPERTIES | sed 's/"language-baseline":"[^"]*",//g')
