@@ -17,6 +17,16 @@ PROTOCOL=https
         x=${x//\'/}
         echo $x
     }
+
+    mandatoryEnv() {
+        local envVar=
+        for envVar in "$@"; do
+            if [ -z "${!envVar}" ]; then
+                rr "ERROR: Mandatory environment variable [$envVar] is not set"
+                exit 1
+            fi
+        done
+    }
 }
 
 ## http help functions
@@ -31,9 +41,8 @@ PROTOCOL=https
             -H "Content-Type:application/json" \
             $URL)
         #set +o xtrace
-        echo "$status" 2> /dev/null
+        echo "$status" 2>/dev/null
     }
-
 
     httpPOST() {
         local host=$1
@@ -47,10 +56,10 @@ PROTOCOL=https
             -d "$payload" \
             ${PROTOCOL}://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint})
         #set +o xtrace
-    
+
         # return response code
         local response=$(echo "$status" | grep "ResponseCode" | awk {'print $2'})
-        if [ "$response" != "200" ];then
+        if [ "$response" != "200" ]; then
             echo "ERROR: Bad response from endpoints [$endpoint]"
             echo "======"
             echo "$status"
@@ -63,9 +72,9 @@ PROTOCOL=https
         local f=options/$1.json
         cp $f $f.tmp
         local args=$2
-        for p in ${args//,/ };do
-            local prop=$(echo $p|awk -F@ '{print $1}')
-            local value=$(echo $p|awk -F@ '{print $2}')
+        for p in ${args//,/ }; do
+            local prop=$(echo $p | awk -F@ '{print $1}')
+            local value=$(echo $p | awk -F@ '{print $2}')
             sed -i "s/%%$prop%%/${value//\//\\/}/g" $f.tmp
         done
         local payload="$(cat $f.tmp)"
@@ -81,8 +90,6 @@ PROTOCOL=https
         echo "$res"
     }
 
-    II() { echo "II `date --iso-8601=seconds` $@"; }
+    II() { echo "II $(date --iso-8601=seconds) $@"; }
 
 }
-
-

@@ -1,47 +1,58 @@
 #!/bin/bash
 
+source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
+
 usage() {
-    echo "USAGE: ./$0 <ACTION> [OPTIONS]"
+    echo "source my-custom-env.sh"
+    echo "USAGE: ./$0 --run"
 }
 
 main() {
-    PROTOCOL=$1
-    MASTER_HOST=$2
-    REPLICA_HOST=$3
-    USERNAME=$4
-    PASSWORD=$5
-    
-    MASTER_ADMIN=$USERNAME
-    MASTER_PASS=$PASSWORD
-
-    REPLICA_ADMIN=$USERNAME
-    REPLICA_PASS=$PASSWORD
+    init
 
     # Make sure you have SSM port forwarded the primary/local cluster to 8002, and the foreign/replica to 9002 via ssm-tunnel-(primary|replica)bash
     echo "Retrieving primary/local cluster properties"
-    PRIMARY_PROPERTIES=$(getClusterProperties $MASTER_HOST $MASTER_ADMIN $MASTER_PASS $PROTOCOL)
+    PRIMARY_PROPERTIES=$(getClusterProperties \
+        $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD $ML_PROTOCOL \
+        $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD \
+    )
     echo "Retrieving replica/foreign cluster properties"
-    REPLICA_PROPERTIES=$(getClusterProperties $REPLICA_HOST $REPLICA_ADMIN $REPLICA_PASS $PROTOCOL)
+    FOREIGN_PROPERTIES=$(getClusterProperties \
+        $ML_FOREIGN_HOST $ML_FOREIGN_ADMIN $ML_FOREIGN_PASSWORD $ML_PROTOCOL \
+        $ML_FOREIGN_CERT_PATH $ML_LOCAL_CERT_PASSWORD \
+    )
 
-    REPLICA_CLUSTER_NAME=$(echo $REPLICA_PROPERTIES | grep -o '"cluster-name":"[^"]*"' | cut -d: -f2 | tr -d '"')
-    echo "Replica/foreign cluster name is $REPLICA_CLUSTER_NAME"
+    FOREIGN_CLUSTER_NAME=$(echo $FOREIGN_PROPERTIES | grep -o '"cluster-name":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    echo "Replica/foreign cluster name is $FOREIGN_CLUSTER_NAME"
 
     NEW_PRIMARY=$(echo $PRIMARY_PROPERTIES | sed 's/"language-baseline":"[^"]*",//g')
-    NEW_REPLICA=$(echo $REPLICA_PROPERTIES | sed 's/"language-baseline":"[^"]*",//g')
+    NEW_REPLICA=$(echo $FOREIGN_PROPERTIES | sed 's/"language-baseline":"[^"]*",//g')
 
     # Tell the primary/local cluster to couple with the foreign/replica
     echo "Coupling primary to replica"
-    coupleClusters $MASTER_HOST $MASTER_ADMIN $MASTER_PASS $PROTOCOL $NEW_REPLICA
+    coupleClusters \
+        $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD \
+        $ML_PROTOCOL $NEW_REPLICA \
+        $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
+    # FIXME: Poll server on port 7997 until it's up
     sleep 15
 
     # Tell the foreign/replica cluster to couple with the primary/local
     echo "Coupling replica to primary"
-    coupleClusters $REPLICA_HOST $REPLICA_ADMIN $REPLICA_PASS $PROTOCOL $NEW_PRIMARY
+    coupleClusters \
+        $ML_FOREIGN_HOST $ML_FOREIGN_ADMIN $ML_FOREIGN_PASSWORD \
+        $ML_PROTOCOL $NEW_PRIMARY \
+        $ML_FOREIGN_CERT_PATH $ML_FOREIGN_CERT_PASSWORD
+    # FIXME: Poll server on port 7997 until it's up
     sleep 15
 
     # Test the bootstrap status of the coupling between the two clusters on the primary/master
     echo "Fetching coupling bootstrap status..."
-    BOOTSTATUS=$(getBootStatus $MASTER_HOST $MASTER_ADMIN $MASTER_PASS $REPLICA_CLUSTER_NAME $PROTOCOL)
+    BOOTSTATUS=$(getBootStatus \
+        $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD \
+        $FOREIGN_CLUSTER_NAME $ML_PROTOCOL \
+        $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD \
+    )
     sleep 10
     if [ ! -z "$(which python)" ];then
         # Easy way to get the value from the json without jq is to use python
@@ -54,25 +65,20 @@ main() {
     fi
 }
 
-getBootStatus() {
-    local HOST=$1
-    local USER=$2
-    local PASS=$3
-    local REPLICA_CLUSTER_NAME=$4
-    local PROTOCOL=$5
-    curl -s \
-        --anyauth --user $USER:$PASS \
-        --header "Content-Type:application/json" \
-        -k "$PROTOCOL://$HOST:8002/manage/v2/clusters/${REPLICA_CLUSTER_NAME}?format=json&view=status"
-}
-
 getClusterProperties() {
     local HOST=$1
     local USER=$2
     local PASS=$3
     local PROTOCOL=$4
+    local CERT_PATH=$5
+    local CERT_PASS=$6
+    # Set up cert options
+    local certOpts=()
+    if [ -n "$CERT_PATH" ];then
+        certOpts=(--cert-type p12 --cert "$CERT_PATH:$CERT_PASS")
+    fi
     curl -s \
-        --anyauth --user $USER:$PASS \
+        --anyauth --user $USER:$PASS ${certOpts[@]} \
         --header "Content-Type:application/json" \
         -k "$PROTOCOL://$HOST:8002/manage/v2/properties?format=json"
 }
@@ -83,11 +89,52 @@ coupleClusters() {
     local PASS=$3
     local PROTOCOL=$4
     local OTHER=$5
+    local CERT_PATH=$6
+    local CERT_PASS=$7
+    # Set up cert options
+    local certOpts=()
+    if [ -n "$CERT_PATH" ];then
+        certOpts=(--cert-type p12 --cert "$CERT_PATH:$CERT_PASS")
+    fi
     curl -s -X POST  \
-        --anyauth --user $ADMIN:$PASS \
+        --anyauth --user $ADMIN:$PASS ${certOpts[@]}\ 
         --header "Content-Type:application/json" \
         -d "$OTHER" \
         -k "$PROTOCOL://$HOST:8002/manage/v2/clusters?format=json" 
 }
 
-main "$@"
+getBootStatus() {
+    local HOST=$1
+    local USER=$2
+    local PASS=$3
+    local FOREIGN_CLUSTER_NAME=$4
+    local PROTOCOL=$5
+    local CERT_PATH=$6
+    local CERT_PASS=$7
+    # Set up cert options
+    local certOpts=()
+    if [ -n "$CERT_PATH" ];then
+        certOpts=(--cert-type p12 --cert "$CERT_PATH:$CERT_PASS")
+    fi
+    curl -s \
+        --anyauth --user $USER:$PASS  ${certOpts[@]} \
+        --header "Content-Type:application/json" \
+        -k "$PROTOCOL://$HOST:8002/manage/v2/clusters/${FOREIGN_CLUSTER_NAME}?format=json&view=status"
+}
+
+
+init() {
+    mandatoryEnv \
+        "ML_PROTOCOL" \
+        "ML_LOCAL_ADMIN" "ML_LOCAL_PASSWORD" "ML_LOCAL_CLUSTER_HOST" \
+        "ML_LOCAL_CERT_PATH" "ML_LOCAL_CERT_PASSWORD" \
+        "ML_FOREIGN_ADMIN" "ML_FOREIGN_PASSWORD" "ML_FOREIGN_CLUSTER_HOST" \
+        "ML_FOREIGN_CERT_PATH" "ML_FOREIGN_CERT_PASSWORD"
+}
+
+if [[ "$1" == "--run" ]]; then
+    main
+else
+    usage
+fi
+
