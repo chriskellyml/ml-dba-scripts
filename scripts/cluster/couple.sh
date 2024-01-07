@@ -32,8 +32,9 @@ main() {
     echo "Coupling primary to replica"
     coupleClusters \
         $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD \
-        $ML_PROTOCOL $NEW_REPLICA \
-        $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
+        $ML_PROTOCOL  \
+        $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD \
+        $NEW_REPLICA
     # FIXME: Poll server on port 7997 until it's up
     sleep 15
 
@@ -41,8 +42,9 @@ main() {
     echo "Coupling replica to primary"
     coupleClusters \
         $ML_FOREIGN_HOST $ML_FOREIGN_ADMIN $ML_FOREIGN_PASSWORD \
-        $ML_PROTOCOL $NEW_PRIMARY \
-        $ML_FOREIGN_CERT_PATH $ML_FOREIGN_CERT_PASSWORD
+        $ML_PROTOCOL  \
+        $ML_FOREIGN_CERT_PATH $ML_FOREIGN_CERT_PASSWORD \
+        $NEW_PRIMARY
     # FIXME: Poll server on port 7997 until it's up
     sleep 15
 
@@ -51,7 +53,7 @@ main() {
     BOOTSTATUS=$(getBootStatus \
         $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD \
         $FOREIGN_CLUSTER_NAME $ML_PROTOCOL \
-        $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD \
+        $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
     )
     sleep 10
     if [ ! -z "$(which python)" ];then
@@ -78,26 +80,32 @@ getClusterProperties() {
         certOpts=(--cert-type p12 --cert "$CERT_PATH:$CERT_PASS")
     fi
     curl -s \
-        --anyauth --user $USER:$PASS ${certOpts[@]} \
+        --anyauth --user "$USER:$PASS" ${certOpts[@]} \
         --header "Content-Type:application/json" \
         -k "$PROTOCOL://$HOST:8002/manage/v2/properties?format=json"
 }
 
 coupleClusters() {
+    $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD \
+    $ML_PROTOCOL $NEW_REPLICA \
+    $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
+
     local HOST=$1
     local USER=$2
     local PASS=$3
     local PROTOCOL=$4
-    local OTHER=$5
-    local CERT_PATH=$6
-    local CERT_PASS=$7
+    local CERT_PATH=$5
+    local CERT_PASS=$6
+    local OTHER="$@"
+    
     # Set up cert options
     local certOpts=()
     if [ -n "$CERT_PATH" ];then
         certOpts=(--cert-type p12 --cert "$CERT_PATH:$CERT_PASS")
     fi
+    
     curl -s -X POST  \
-        --anyauth --user $ADMIN:$PASS ${certOpts[@]}\ 
+        --anyauth --user "$USER:$PASS" ${certOpts[@]} \
         --header "Content-Type:application/json" \
         -d "$OTHER" \
         -k "$PROTOCOL://$HOST:8002/manage/v2/clusters?format=json" 
@@ -117,7 +125,7 @@ getBootStatus() {
         certOpts=(--cert-type p12 --cert "$CERT_PATH:$CERT_PASS")
     fi
     curl -s \
-        --anyauth --user $USER:$PASS  ${certOpts[@]} \
+        --anyauth --user "$USER:$PASS" ${certOpts[@]} \
         --header "Content-Type:application/json" \
         -k "$PROTOCOL://$HOST:8002/manage/v2/clusters/${FOREIGN_CLUSTER_NAME}?format=json&view=status"
 }
@@ -126,9 +134,9 @@ getBootStatus() {
 init() {
     mandatoryEnv \
         "ML_PROTOCOL" \
-        "ML_LOCAL_ADMIN" "ML_LOCAL_PASSWORD" "ML_LOCAL_CLUSTER_HOST" \
+        "ML_LOCAL_ADMIN" "ML_LOCAL_PASSWORD" "ML_LOCAL_HOST" \
         "ML_LOCAL_CERT_PATH" "ML_LOCAL_CERT_PASSWORD" \
-        "ML_FOREIGN_ADMIN" "ML_FOREIGN_PASSWORD" "ML_FOREIGN_CLUSTER_HOST" \
+        "ML_FOREIGN_ADMIN" "ML_FOREIGN_PASSWORD" "ML_FOREIGN_HOST" \
         "ML_FOREIGN_CERT_PATH" "ML_FOREIGN_CERT_PASSWORD"
 }
 

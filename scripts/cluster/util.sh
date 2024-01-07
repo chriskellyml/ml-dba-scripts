@@ -22,7 +22,7 @@ PROTOCOL=https
         local envVar=
         for envVar in "$@"; do
             if [ -z "${!envVar}" ]; then
-                rr "ERROR: Mandatory environment variable [$envVar] is not set"
+                echo "ERROR: Mandatory environment variable [$envVar] is not set"
                 exit 1
             fi
         done

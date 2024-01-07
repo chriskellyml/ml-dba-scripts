@@ -1,6 +1,8 @@
 # Note
 
-For testing only. Use at your own risk. Read what the scripts do before attempting to run.
+FOR TESTING PURPOSES ONLY! 
+
+Use at your own risk. Please read the scripts do before attempting to run.
 
 ## Set up
 
