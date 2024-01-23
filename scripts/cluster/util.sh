@@ -32,8 +32,13 @@ PROTOCOL=https
 ## http help functions
 {
     httpGET() {
+        # Assign positional parameters
         local host=$1
         local endpoint=$2
+
+        # TODO: Add support for user/pass + cert
+
+        ##
         local URL="$PROTOCOL://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint}"
         # echo $URL
         #set -o xtrace
@@ -45,12 +50,22 @@ PROTOCOL=https
     }
 
     httpPOST() {
+        # Assign positional parameters
         local host=$1
         local endpoint=$2
         local payload=$3
-
+        local user=$4
+        local pass=$5
+        local certPath=$6
+        local certPass=$7
+        ##
+        # Set up cert options
+        local certOpts=()
+        if [ -n "$CERT_PATH" ];then
+            certOpts=(--cert-type p12 --cert "$certPath:$certPass")
+        fi
         #set -o xtrace
-        status=$(curl -s -k --digest --user "${USER}:${PASS}" -X POST \
+        status=$(curl -s -k --digest --user "${user}:${pass}" -X POST \
             --write-out 'ResponseCode: %{http_code}' \
             -H "Content-Type:application/json" \
             -d "$payload" \
@@ -91,5 +106,4 @@ PROTOCOL=https
     }
 
     II() { echo "II $(date --iso-8601=seconds) $@"; }
-
 }

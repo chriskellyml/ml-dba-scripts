@@ -1,8 +1,12 @@
-# Note
+# About
 
-FOR TESTING PURPOSES ONLY! 
+This is a collection of scripts to help with the management of a MarkLogic cluster.
 
-Use at your own risk. Please read the scripts do before attempting to run.
+## Disclaimer
+
+The scripts herein are may be useful for managing a marklogic cluster, but are not supported by MarkLogic. We built them for our own use to save time and effort when managing our own clusters. We are sharing them in the hope that they may be useful to others, but we do not guarantee that they will work for you, or that they will not cause problems.
+
+Above all read the script logic and *USE AT YOUR OWN RISK*.
 
 ## Set up
 
@@ -17,7 +21,7 @@ Where public keys are stored in certificate.pem.
 
 Later you will define the path and password for the certs in the env file defined later.
 
-## Usage
+## Preparing enviromement
 
 Copy env.sh.sample to env.my-env.sh where "my-env" is the target environment.
 
@@ -27,8 +31,23 @@ Change the values in the env file to suit. Then run one of the available scripts
 
 ### Coupling clusters
 
+Clusters can be coupled, or uncoupled a follows:
+
+#### coupling
 ```
 # Edit env.my-env.sh with required params for "my-env"
 source env.my-env.sh
-bash scripts/cluster/couple.sh
+bash scripts/cluster/couple.sh --run
 ```
+
+#### un-coupling
+
+NOTE: un-coupling can only be done after all database have replcation removed.
+
+```
+# Edit env.my-env.sh with required params for "my-env"
+source env.my-env.sh
+bash scripts/cluster/couple.sh --run
+```
+
+### Setting up replication

@@ -36,7 +36,10 @@ main() {
         "$NEW_REPLICA" \
         $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
     # FIXME: Poll server on port 7997 until it's up
-    sleep 30
+
+    echo ""
+    echo "Waiting 15 seconds to allow time for local to come back up..."
+    sleep 15
 
     # Tell the foreign/replica cluster to couple with the primary/local
     echo "Coupling replica to primary"
@@ -46,7 +49,9 @@ main() {
         "$NEW_PRIMARY" \
         $ML_FOREIGN_CERT_PATH $ML_FOREIGN_CERT_PASSWORD
     # FIXME: Poll server on port 7997 until it's up
-    sleep 30
+    echo ""
+    echo "Waiting 30 seconds to allow time for foreign to come back up..."
+    sleep 15
 
 
     # Test the bootstrap status of the coupling between the two clusters on the primary/master
@@ -57,9 +62,11 @@ main() {
         $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
     )"
 
-    echo "$BOOTSTATUS"
+    local IS_BOOTSTRAPPED=$(echo "$BOOTSTATUS" | awk -F'"is-bootstrapped":' '{print $2}' | awk -F',' '{print $1}' | tr -d ' ')
+    echo "Is bootstrapped: $IS_BOOTSTRAPPED"
 }
 
+# TODO: reuse util.sh httpPOST and httpGET functions
 getClusterProperties() {
     local HOST=$1
     local USER=$2
@@ -98,7 +105,7 @@ coupleClusters() {
         --anyauth --user "$USER:$PASS" ${certOpts[@]} \
         --header "Content-Type:application/json" \
         -d "$PAYLOAD" \
-        -k "$PROTOCOL://$HOST:8002/manage/v2/clusters?format=json" 
+        -k "$PROTOCOL://$HOST:8002/manage/v2/clusters?format=json"
     #set +o xtrace
 }
 
@@ -134,4 +141,3 @@ if [[ "$1" == "--run" ]]; then
 else
     usage
 fi
-
