@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ML_MANAGE_PORT=8002
-PROTOCOL=https
+ML_PROTOCOL=https
 
 # Generic data calls
 {
@@ -31,18 +31,28 @@ PROTOCOL=https
 
 ## http help functions
 {
+    getCertOpts() {
+        local certPath=$1
+        local certPass=$2
+        local certOpts=()
+        if [ -n "$certPath" ];then
+            certOpts=(--cert-type p12 --cert "$certPath:$certPass")
+        fi
+        echo "${certOpts[@]}"
+    }
+
     httpGET() {
         # Assign positional parameters
         local host=$1
         local endpoint=$2
-
-        # TODO: Add support for user/pass + cert
-
+        local user=$4
+        local pass=$5
+        local certOpts=$(getCertOpts $6 $7)
         ##
-        local URL="$PROTOCOL://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint}"
+        local URL="$ML_PROTOCOL://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint}"
         # echo $URL
         #set -o xtrace
-        status=$(curl -s -k --digest --user "${USER}:${PASS}" -X GET \
+        status=$(curl -s -k --digest --user "${user}:${pass}" -X GET \
             -H "Content-Type:application/json" \
             $URL)
         #set +o xtrace
@@ -60,16 +70,18 @@ PROTOCOL=https
         local certPass=$7
         ##
         # Set up cert options
-        local certOpts=()
+        local certOpts=$(getCertOpts $6 $7)
         if [ -n "$CERT_PATH" ];then
             certOpts=(--cert-type p12 --cert "$certPath:$certPass")
         fi
         #set -o xtrace
-        status=$(curl -s -k --digest --user "${user}:${pass}" -X POST \
+        status=$(curl \
+            -s -k --digest --user "${user}:${pass}" ${certOpts[@]} \
+            -X POST \
             --write-out 'ResponseCode: %{http_code}' \
             -H "Content-Type:application/json" \
             -d "$payload" \
-            ${PROTOCOL}://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint})
+            ${ML_PROTOCOL}://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint})
         #set +o xtrace
 
         # return response code
