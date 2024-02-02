@@ -40,9 +40,7 @@ source env.my-env.sh
 bash scripts/cluster/couple.sh --run
 ```
 
-#### un-coupling
-
-NOTE: un-coupling can only be done after all database have replcation removed.
+#### Setting up replication
 
 ```
 # Edit env.my-env.sh with required params for "my-env"
@@ -50,4 +48,9 @@ source env.my-env.sh
 bash scripts/cluster/couple.sh --run
 ```
 
-### Setting up replication
+#### Removing replication
+```
+# Edit env.my-env.sh with required params for "my-env"
+source env.my-env.sh
+bash scripts/cluster/couple.sh --run
+```

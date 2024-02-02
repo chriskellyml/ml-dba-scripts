@@ -1,23 +1,25 @@
 #!/bin/bash
-#
-# Created: ~2022
-# Authors: Chris Kelly, Piyush Vyas
+source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
 #
 
-source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
+set -e
 
 usage() {
     echo "
+ML_DBA / cluster / replication
 
 USAGE: ./$0 <ACTION> [OPTIONS]
 
-  ACTION(s):
-      --remove            Removes replication on primary or secondary cluster
+  ACTIONS:
+      --remove            Removes replication on ...
+          primary           primary cluster
+          secondary         secondary cluster
+
       --enable-forward    Enables replication from primary to secondary
       --enable-reverse    Enables replication from secondary to primary
 
   OPTIONS (optional: defaults taken from environment variables):
-      --databases           Database(s) to act on.
+      --database            Database to act on.
       --username            Username if no \$ML_ADMIN variable is defined. Assumed same for both clusters.
         --username-local    Username for local cluster. Overrides --username for local cluster.
         --username-foreign  Username for foreign cluster. Overrides --username for foreign cluster.
@@ -42,92 +44,114 @@ USAGE: ./$0 <ACTION> [OPTIONS]
 
 main() {
     local runId=$(date +%s)
+    mandatoryEnv \
+        "ML_PROTOCOL" \
+        "ML_LOCAL_ADMIN" "ML_LOCAL_PASSWORD" "ML_LOCAL_HOST" \
+        "ML_FOREIGN_ADMIN" "ML_FOREIGN_PASSWORD" "ML_FOREIGN_HOST"
     processArgs $@
+
     # showParams
     case $ACTION in
+
         # primary and local are interchangeable but we are moving to local/foreign
         removePrimary|removeLocal)
-            for db in ${ML_DATABASE//,/ };do
-                II "Removing replication from primary [$ML_LOCAL_HOST] for database [$db]"
-                removeReplication \
-                    $ML_LOCAL_HOST $ML_PROTOCOL \
-                    "remove-foreign-replicas" $db \
-                    $ML_LOCAL_ADMIN "$ML_LOCAL_PASS" \
-                    $ML_LOCAL_CERT_FILE "$ML_LOCAL_CERT_PASSWORD"
+            II "Removing replication from primary [$ML_LOCAL_HOST] for database [$ML_DATABASE]"
+            removeReplication \
+                $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL \
+                "remove-foreign-replicas" $ML_DATABASE \
+                $ML_LOCAL_ADMIN "$ML_LOCAL_PASSWORD" \
+                $ML_LOCAL_CERT_PATH "$ML_LOCAL_CERT_PASSWORD"
 
-                test "$WIPE" && removeReplication $ML_LOCAL_HOST "remove-foreign-master" $db
-            done
+            if "$WIPE";then 
+                removeReplication \
+                    $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL \
+                    "remove-foreign-master" $ML_DATABASE \
+                    $ML_LOCAL_ADMIN "$ML_LOCAL_PASSWORD" \
+                    $ML_LOCAL_CERT_PATH "$ML_LOCAL_CERT_PASSWORD"
+            fi
             ;;
 
         removeSecondary|removeForeign)
-            for db in ${ML_DATABASE//,/ };do
-                II "Removing replication from secondary [$ML_LOCAL_HOST] for database [$db]"
-                removeReplication \
-                    $ML_FOREIGN_HOST $ML_PROTOCOL \
-                    "remove-foreign-master" $db \
-                    $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASS" \
-                    $ML_FOREIGN_CERT_FILE "$ML_FOREIGN_CERT_PASSWORD"
+            II "Removing replication from secondary [$ML_LOCAL_HOST] for database [$ML_DATABASE]"
+            removeReplication \
+                $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL \
+                "remove-foreign-master" $ML_DATABASE \
+                $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASSWORD" \
+                $ML_FOREIGN_CERT_PATH "$ML_FOREIGN_CERT_PASSWORD"
 
-                test "$WIPE" && removeReplication $ML_FOREIGN_HOST "remove-foreign-replicas" $db
-            done
+            if "$WIPE";then
+                removeReplication \
+                    $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL \
+                    "remove-foreign-replicas" $ML_DATABASE \
+                    $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASSWORD" \
+                    $ML_FOREIGN_CERT_PATH "$ML_FOREIGN_CERT_PASSWORD"
+            fi
             ;;
 
         # forward is always direction from local to foreign
         enableForward)
-            for db in ${ML_DATABASE//,/ };do
-                dryMessage $ML_LOCAL_HOST $ML_FOREIGN_HOST $db
-                addReplicationOnMaster \
-                    $ML_LOCAL_HOST $ML_FOREIGN_HOST \
-                    $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
-                    $db \
-                    $ML_LOCAL_ADMIN "$ML_LOCAL_PASS" \
-                    $ML_LOCAL_CERT_FILE "$ML_LOCAL_CERT_PASSWORD"
+            dryMessage $ML_LOCAL_HOST $ML_FOREIGN_HOST $ML_DATABASE
 
-                addReplicationOnForeign \
-                    $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASS" \
-                    $ML_LOCAL_HOST $ML_FOREIGN_HOST $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
-                    $db
-            done
+            LL $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL \
+                $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
+                $ML_DATABASE \
+                $ML_LOCAL_ADMIN "$ML_LOCAL_PASSWORD" \
+                "CERTS ..." \
+                $ML_LOCAL_CERT_PATH "$ML_LOCAL_CERT_PASSWORD"
+
+            addReplicationOnMaster \
+                $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL \
+                $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
+                $ML_DATABASE \
+                $ML_LOCAL_ADMIN "$ML_LOCAL_PASSWORD" \
+                $ML_LOCAL_CERT_PATH "$ML_LOCAL_CERT_PASSWORD"
+
+            addReplicationOnForeign \
+                $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL \
+                $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
+                $ML_DATABASE \
+                $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASSWORD" \
+                $ML_FOREIGN_CERT_PATH "$ML_FOREIGN_CERT_PASSWORD"
             ;;
 
         # reverse is always direction from foreign to local
         enableReverse)
-            for db in ${ML_DATABASE//,/ };do
-                dryMessage $ML_FOREIGN_HOST $ML_LOCAL_HOST $db
-                addReplicationOnForeign \
-                    $ML_FOREIGN_ADMIN "$MLFOREIGN_PASS" \
-                    $ML_FOREIGN_HOST $ML_LOCAL_HOST $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
-                    $db
-                addReplicationOnMaster \
-                    $ML_LOCAL_ADMIN "$ML_LOCAL_PASS" \
-                    $ML_FOREIGN_HOST $ML_LOCAL_HOST $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
-                    $db
-            done
+            dryMessage $ML_FOREIGN_HOST $ML_LOCAL_HOST $ML_DATABASE
+            addReplicationOnForeign \
+                $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL \
+                $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
+                $ML_DATABASE \
+                $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASSWORD" \
+                $ML_FOREIGN_CERT_PATH "$ML_FOREIGN_CERT_PASSWORD"
+
+            addReplicationOnMaster \
+                $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL \
+                $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
+                $ML_DATABASE \
+                $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASSWORD" \
+                $ML_FOREIGN_CERT_PATH "$ML_FOREIGN_CERT_PASSWORD"
             ;;
 
         # It can be dangerous to enable replication withoutforests being in sync.
         # This is a helper function to wait until all forests are in sync.
         waitForForestsSync)
             if "$DRY_RUN";then
-                II "DRY RUN MODE: Waiting for forests for db [$db] on host [$host]."
+                II "DRY RUN MODE: Waiting for forests for db [$ML_DATABASE] on host [$host]."
                 exit
             fi
-            for db in ${ML_DATABASE//,/ };do
-                II "Waiting for forests of database [$db]"
-                waitForForestsSync \
-                    $HOST $db $runId &
-            done
+            
+            II "Waiting for forests of database [$ML_DATABASE]"
+            waitForForestsSync $HOST $ML_DATABASE $runId &
+            
             # now wait
             keepWaiting=true
             while $keepWaiting;do
                 keepWaiting=false
-                for db in ${ML_DATABASE//,/ };do
-                    II "Checking forests on database [$db]"
-                    if [ -f "/tmp/syncing-${db}-${runId}" ];then
-                        II ".. database [$db]: sync-in-progress"
-                        keepWaiting=true
-                    fi
-                done
+                II "Checking forests on database [$ML_DATABASE]"
+                if [ -f "/tmp/syncing-${ML_DATABASE}-${runId}" ];then
+                    II ".. database [$ML_DATABASE]: sync-in-progress"
+                    keepWaiting=true
+                fi
                 sleep 15
             done
             ;;
@@ -145,6 +169,9 @@ showParams() {
     echo "DATABASE:        $ML_DATABASE"
     echo "USER LOCAL:      $ML_LOCAL_ADMIN"
     echo "USER FOREIGN:    $ML_FOREIGN_ADMIN"
+    echo "FOREIGN CERT:    $ML_FOREIGN_CERT_PATH"
+    echo "LOCAL CERT:      $ML_LOCAL_CERT_PATH"
+    echo "WIPE:            $WIPE"
     #exit
 }
 
@@ -190,6 +217,8 @@ showParams() {
         local pass=$6
         local certPath=$7
         local certPass=$8
+
+        II "Removing replication from [$host] for database [$db]"
         ##
         ## Execute the command
         if "$DRY_RUN";then
@@ -204,7 +233,11 @@ showParams() {
             \"operation\": \"${mode}\"
             $replicaPayload
         }"
-        local responseCode=$(httpPOST "$host" "$protocol" databases/${db} "$payload" "$user" "$pass" "$certPath" "$certPass")
+        local responseCode=$(httpPOST \
+             "$host" "$protocol" \
+            databases/${db} "$payload" \
+            "$user" "$pass" "$certPath" "$certPass" \
+        )
         if [[ "$responseCode" == "200" ]];then
             II "Replication removed from [$host] for database [$db]"
         else
@@ -215,14 +248,16 @@ showParams() {
     addReplicationOnMaster() {
         ## Assign positional parameters
         local master=$1
-        local replica=$2
-        local cluster=$3
-        local foreignCluster=$4
-        local db=$5
-        local user=$6
-        local pass=$7
-        local certPath=$8
-        local certPass=$9
+        local masterProtocol=$2
+        local replica=$3
+        local replicaProtocol=$4
+        local cluster=$5
+        local foreignCluster=$6
+        local db=$7
+        local user=$8
+        local pass=$9
+        local certPath=${10}
+        local certPass=${11}
         ##
         II "Adding replication on local"
         # steps to add it on the master side
@@ -237,27 +272,35 @@ showParams() {
                 \"queue-size\":10
             }]
         }"
-        local responseCode=$(httpPOST "$master" databases/${db} "$payload" "$user" "$pass" "$certPath" "$certPass")
+        local responseCode=$(httpPOST \
+            "$master" "$masterProtocol" \
+            databases/${db} "$payload" \
+            "$user" "$pass" "$certPath" "$certPass" \
+        )
         if [[ "$responseCode" == "200" ]]; then
             echo "=================== ADDED REPLICATION ON MASTER =============================="
         else
             echo "Could not add replication on master [$master] for database [$db]"
+            exit 1
         fi
     }
 
     addReplicationOnForeign() {
         # Assign positional parameters
         local master=$1
-        local replica=$2
-        local cluster=$3
-        local foreignCluster=$4
-        local db=$5
-        local user=$6
-        local pass=$7
-        local certPath=$8
-        local certPass=$9
+        local masterProtocol=$2
+        local replica=$3
+        local replicaProtocol=$4
+        local cluster=$5
+        local foreignCluster=$6
+        local db=$7
+        local user=$8
+        local pass=$9
+        local certPath=${10}
+        local certPass=${11}
         ##
         II "Adding replication on foreign"
+        # steps to add it on the replica side
         local payload="{
             \"operation\": \"set-foreign-master\",
             \"foreign-master\": {
@@ -266,12 +309,17 @@ showParams() {
                 \"connect-forests-by-name\": true
             }
         }"
-        local responseCode=$(httpPOST "$replica" databases/${db} "$payload" "$user" "$pass" "$certPath" "$certPass")
+        local responseCode=$(httpPOST \
+            "$replica" "$replicaProtocol" \
+            databases/${db} "$payload" \
+            "$user" "$pass" "$certPath" "$certPass" \
+        )
         if [[ "$responseCode" == "200" ]]; then
             echo "=================== ATTACHED REPLICATION ON FOREIGN =============================="
         else
             echo "ERROR: Could not add replication on master [$replica] for database [$db]"
             echo "       Status code [$responseCode]"
+            exit 1
         fi
     }
 
@@ -294,8 +342,6 @@ showParams() {
         # made it hardcode because it was picking the host from ~/.bashrc [localhost]
         ML_LOCAL_HOST=$HOST
         ML_FOREIGN_HOST=$ML_FOREIGN_HOST
-        USER=$USER_ARCH
-        PASS=$PASS_ARCH
         while [ "$#" -ne "0" ];do
             case $1 in
                 # ACTIONS
@@ -323,11 +369,11 @@ showParams() {
                 --primary-cluster) shift;ML_LOCAL_CLUSTER_NAME=$1;shift ;;
                 --secondary-cluster) shift;ML_FOREIGN_CLUSTER_NAME=$1;shift ;;
                 --host) shift;HOST=$1;shift ;;
-                --wipe) shift;true=true ;;
+                --wipe) shift;WIPE=true ;;
                 --dry-run) shift;DRY_RUN=$1;shift ;;
-                --databases) shift; ML_DATABASE=$1;shift ;;
+                --database) shift; ML_DATABASE=$1;shift ;;
                 --help) shift;usage;exit ;;
-                *) echo "Unknown "; shift ;;
+                *) echo "Unknown switch [$1]"; shift ;;
             esac
         done
 
@@ -341,13 +387,8 @@ showParams() {
             usage
             exit 1
         fi
-        if [ -z "$USER" ];then
+        if [ -z "$ML_ADMIN" ];then
             echo "No username provided. use --username <username>"
-            usage
-            exit 1
-        fi
-        if [ -z "$PASS" ];then
-            echo "No password provided. use --password <password>"
             usage
             exit 1
         fi

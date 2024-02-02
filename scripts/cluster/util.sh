@@ -32,11 +32,11 @@ ML_PROTOCOL=https
 ## http help functions
 {
     getCertOpts() {
-        local certPath=$1
-        local certPass=$2
+        local cPath=$1
+        local cPass=$2
         local certOpts=()
-        if [ -n "$certPath" ];then
-            certOpts=(--cert-type p12 --cert "$certPath:$certPass")
+        if [ -n "$1" ];then
+            certOpts=(--cert-type p12 --cert "$cPath:$cPass")
         fi
         echo "${certOpts[@]}"
     }
@@ -44,15 +44,18 @@ ML_PROTOCOL=https
     httpGET() {
         # Assign positional parameters
         local host=$1
-        local endpoint=$2
+        local protocol=$2
+        local endpoint=$3
         local user=$4
         local pass=$5
         local certOpts=$(getCertOpts $6 $7)
         ##
-        local URL="$ML_PROTOCOL://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint}"
+        local URL="${protocol}://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint}"
         # echo $URL
         #set -o xtrace
-        status=$(curl -s -k --digest --user "${user}:${pass}" -X GET \
+        status=$(curl \
+            -s -k --digest --user "${user}:${pass}" ${certOpts[@]} \
+            -X GET \
             -H "Content-Type:application/json" \
             $URL)
         #set +o xtrace
@@ -62,27 +65,22 @@ ML_PROTOCOL=https
     httpPOST() {
         # Assign positional parameters
         local host=$1
-        local endpoint=$2
-        local payload=$3
-        local user=$4
-        local pass=$5
-        local certPath=$6
-        local certPass=$7
-        ##
-        # Set up cert options
-        local certOpts=$(getCertOpts $6 $7)
-        if [ -n "$CERT_PATH" ];then
-            certOpts=(--cert-type p12 --cert "$certPath:$certPass")
-        fi
-        #set -o xtrace
+        local protocol=$2
+        local endpoint=$3
+        local payload=$4
+        local user=$5
+        local pass=$6
+        local certOpts="$(getCertOpts $7 $8)"
+        LL Endpoint $endpoint
+        LL curl -s -k --digest --user "${user}:${pass}" ${certOpts[@]} -X POST --write-out 'ResponseCode: %{http_code}' -H "Content-Type:application/json" -d "$payload" "${ML_PROTOCOL}://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint}"
         status=$(curl \
             -s -k --digest --user "${user}:${pass}" ${certOpts[@]} \
             -X POST \
             --write-out 'ResponseCode: %{http_code}' \
             -H "Content-Type:application/json" \
             -d "$payload" \
-            ${ML_PROTOCOL}://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint})
-        #set +o xtrace
+            ${ML_PROTOCOL}://${host}:${ML_MANAGE_PORT}/manage/v2/${endpoint} \
+        )
 
         # return response code
         local response=$(echo "$status" | grep "ResponseCode" | awk {'print $2'})
@@ -118,4 +116,15 @@ ML_PROTOCOL=https
     }
 
     II() { echo "II $(date --iso-8601=seconds) $@"; }
+    LL() { echo "$@" >> /tmp/ml-dba.log; }
 }
+
+
+init() {
+   touch /tmp/ml-dba.log
+   echo "---" >> /tmp/ml-dba.log 
+   echo "INFO: $(date --iso-8601=seconds) Initializing ml-dba" >> /tmp/ml-dba.log 
+   
+}
+
+init
