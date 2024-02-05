@@ -13,12 +13,12 @@ main() {
     # Make sure you have SSM port forwarded the primary/local cluster to 8002, and the foreign/replica to 9002 via ssm-tunnel-(primary|replica)bash
     echo "Retrieving primary/local cluster properties"
     LOCAL_PROPERTIES=$(getClusterProperties \
-        $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD $ML_PROTOCOL \
+        $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD $ML_LOCAL_PROTOCOL \
         $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD \
     )
     echo "Retrieving replica/foreign cluster properties"
     FOREIGN_PROPERTIES=$(getClusterProperties \
-        $ML_FOREIGN_HOST $ML_FOREIGN_ADMIN $ML_FOREIGN_PASSWORD $ML_PROTOCOL \
+        $ML_FOREIGN_HOST $ML_FOREIGN_ADMIN $ML_FOREIGN_PASSWORD $ML_FOREIGN_PROTOCOL \
         $ML_FOREIGN_CERT_PATH $ML_LOCAL_CERT_PASSWORD \
     )
 
