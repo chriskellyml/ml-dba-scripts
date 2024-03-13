@@ -14,18 +14,15 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
     for $host in xdmp:hosts()
     for $entry in xdmp:filesystem-directory($LOG_PATH)//*:entry
     let $fn := $entry//*:filename/xs:string(.)
-    where ends-with($fn, $TYPE || '.txt')
-      and
-        (: only give requested ports :)
-        if (not(empty($PORT_LIST))) then ($PORT_LIST ! starts-with($fn, .)) else true()
-      and
-        (: skip empties :)
-        $entry//*:content-length ne 0
-      and
-        $entry//*:type eq 'file'
-      and
-        (: only give requested hosts :)
-        if (not(empty($HOST_LIST))) then ($HOST_LIST = xdmp:host-name($host)) else true()
+    where $entry//*:type eq 'file'
+      (: only give requested types :)
+      and ends-with($fn, $TYPE || '.txt')
+      (: skip empties :)
+      and $entry//*:content-length ne 0
+      (: only give requested ports :)
+      and if (not(empty($PORT_LIST))) then ($PORT_LIST ! starts-with($fn, .)) else true()
+      (: only give requested hosts :)
+      and if (not(empty($HOST_LIST))) then ($HOST_LIST = xdmp:host-name($host)) else true()
     return 
       <logfile>
          <host>{xdmp:host-name($host)}</host>
