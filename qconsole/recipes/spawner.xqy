@@ -3,12 +3,15 @@
  :)
 declare variable $DRY_RUN := fn:false();
 declare variable $BATCH_SIZE := 10;
-declare variable $LIMIT := 100000000;
+declare variable $LIMIT := 10000;
 
 (: IMPLEMENT!! THIS COLLECTOR SHOULD GATHER THE ITEMS TO PROCESS :)
 declare function local:collect() {
-  for $i in (1 to 100)
-  return <item>{$i}</item>
+  let $workItems := (
+    for $i in (1 to 100)
+    return <item>{$i}</item>)[1 to $LIMIT]
+  return (count($workItems), $workItems)
+
 };
 
 (: IMPLEMENT!! THIS FUNCTION SHOULD DO THE ACTUAL WORK :)
@@ -28,6 +31,8 @@ declare function local:process(
 declare function local:distribute-tasks()
 {
   let $workToDo := local:collect()
+  let $num := $workToDo[1]
+  let $workToDo := $workToDo[2 to fn:last()]
   return 
     if ($DRY_RUN)
     then (
@@ -37,7 +42,6 @@ declare function local:distribute-tasks()
       $workToDo[1 to 5]
     )
     else
-      let $num := fn:count($workToDo)
       let $total := fn:ceiling($num div $BATCH_SIZE)
       return
         for $i in (0 to $total)
