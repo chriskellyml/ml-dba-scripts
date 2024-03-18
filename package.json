@@ -1,0 +1,16 @@
+{
+  "name": "ml-dba-scripts",
+  "version": "1.0.0",
+  "description": "This is a collection of scripts to help with the management of a MarkLogic cluster.",
+  "main": "index.js",
+  "scripts": {
+    "update-sources": "node scripts/build/update-sources.js",
+    "build:registry": "bash scripts/build/update-registry.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ml-mon-ami": "^1.3.0"
+  }
+} 

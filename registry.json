@@ -1,0 +1,37 @@
+[
+  {
+    "label": "mldb/dumper/1-export-docs",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/dumper/qconsole/dumper/1-export-docs.xqy"
+  },
+  {
+    "label": "mldb/dumper/2-import-docs",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/dumper/qconsole/dumper/2-import-docs.xqy"
+  },
+  {
+    "label": "mldb/ready/extract-logs",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/ready/qconsole/ready/extract-logs.xqy"
+  },
+  {
+    "label": "mldb/ready/generate-cluster-diagram",
+    "type": "sjs",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/ready/qconsole/ready/generate-cluster-diagram.sjs"
+  },
+  {
+    "label": "mldb/recipes/globals",
+    "type": "sjs",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/recipes/qconsole/recipes/globals.sjs"
+  },
+  {
+    "label": "mldb/recipes/spawner",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/recipes/qconsole/recipes/spawner.xqy"
+  },
+  {
+    "label": "mldb/snippets/find-docs",
+    "type": "sjs",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/snippets/qconsole/snippets/find-docs.sjs"
+  }
+]
