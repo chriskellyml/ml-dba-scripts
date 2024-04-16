@@ -1,7 +1,6 @@
 #!/bin/bash
 
 ML_MANAGE_PORT=8002
-ML_PROTOCOL=https
 
 # Generic data calls
 {
@@ -114,8 +113,7 @@ ML_PROTOCOL=https
         local res=$(echo "$json" | python -c "$pyString")
         echo "$res"
     }
-
-    II() { echo "II $(date --iso-8601=seconds) $@"; }
+    II() { echo "II $(date '+%Y-%m-%dT%H:%M:%S%z') $@"; }
     LL() { echo "$@" >> /tmp/ml-dba.log; }
 }
 
@@ -123,8 +121,7 @@ ML_PROTOCOL=https
 init() {
    touch /tmp/ml-dba.log
    echo "---" >> /tmp/ml-dba.log 
-   echo "INFO: $(date --iso-8601=seconds) Initializing ml-dba" >> /tmp/ml-dba.log 
-   
+   echo "INFO $(date '+%Y-%m-%dT%H:%M:%S%z') Initializing ml-dba" >> /tmp/ml-dba.log
 }
 
 init

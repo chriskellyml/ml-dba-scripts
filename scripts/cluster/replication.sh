@@ -1,6 +1,6 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
-##
+#
 
 set -e
 
@@ -45,7 +45,7 @@ USAGE: ./$0 <ACTION> [OPTIONS]
 main() {
     local runId=$(date +%s)
     mandatoryEnv \
-        "ML_PROTOCOL" \
+        "ML_LOCAL_PROTOCOL" "ML_FOREIGN_PROTOCOL" \
         "ML_LOCAL_ADMIN" "ML_LOCAL_PASSWORD" "ML_LOCAL_HOST" \
         "ML_FOREIGN_ADMIN" "ML_FOREIGN_PASSWORD" "ML_FOREIGN_HOST"
     processArgs $@
@@ -128,7 +128,7 @@ main() {
                 $ML_FOREIGN_HOST $ML_FOREIGN_PROTOCOL $ML_LOCAL_HOST $ML_LOCAL_PROTOCOL \
                 $ML_LOCAL_CLUSTER_NAME $ML_FOREIGN_CLUSTER_NAME \
                 $ML_DATABASE \
-                $ML_FOREIGN_ADMIN "$ML_FOREIGN_PASSWORD" \
+                $ML_LOCAL_ADMIN "$ML_LOCAL_PASSWORD" \
                 $ML_FOREIGN_CERT_PATH "$ML_FOREIGN_CERT_PASSWORD"
             ;;
 
@@ -281,6 +281,7 @@ showParams() {
             echo "=================== ADDED REPLICATION ON MASTER =============================="
         else
             echo "Could not add replication on master [$master] for database [$db]"
+            echo $responseCode
             exit 1
         fi
     }
