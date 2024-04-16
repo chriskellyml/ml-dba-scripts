@@ -46,7 +46,6 @@ imagePullSecrets: []
 # - name: "your-secret-name-1"
 # - name: "your-secret-name-2"
 
-
 ## Manage HugePages
 ## ref: https://v1-23.docs.kubernetes.io/docs/tasks/manage-hugepages/scheduling-hugepages/
   #####################################################
