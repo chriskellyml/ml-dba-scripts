@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+set -e
 
 source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
 
@@ -32,7 +34,7 @@ main() {
     echo "Coupling primary to replica"
     coupleClusters \
         $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD \
-        $ML_PROTOCOL  \
+        $ML_LOCAL_PROTOCOL  \
         "$NEW_REPLICA" \
         $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
     # FIXME: Poll server on port 7997 until it's up
@@ -45,12 +47,12 @@ main() {
     echo "Coupling replica to primary"
     coupleClusters \
         $ML_FOREIGN_HOST $ML_FOREIGN_ADMIN $ML_FOREIGN_PASSWORD \
-        $ML_PROTOCOL  \
+        $ML_FOREIGN_PROTOCOL  \
         "$NEW_PRIMARY" \
         $ML_FOREIGN_CERT_PATH $ML_FOREIGN_CERT_PASSWORD
     # FIXME: Poll server on port 7997 until it's up
     echo ""
-    echo "Waiting 30 seconds to allow time for foreign to come back up..."
+    echo "Waiting 15 seconds to allow time for foreign to come back up..."
     sleep 15
 
 
@@ -58,7 +60,7 @@ main() {
     echo "Fetching coupling bootstrap status..."
     BOOTSTATUS="$(getBootStatus \
         $ML_LOCAL_HOST $ML_LOCAL_ADMIN $ML_LOCAL_PASSWORD \
-        $FOREIGN_CLUSTER_NAME $ML_PROTOCOL \
+        $FOREIGN_CLUSTER_NAME $ML_LOCAL_PROTOCOL \
         $ML_LOCAL_CERT_PATH $ML_LOCAL_CERT_PASSWORD
     )"
 
@@ -131,7 +133,7 @@ getBootStatus() {
 
 init() {
     mandatoryEnv \
-        "ML_PROTOCOL" \
+        "ML_LOCAL_PROTOCOL" "ML_FOREIGN_PROTOCOL" \
         "ML_LOCAL_ADMIN" "ML_LOCAL_PASSWORD" "ML_LOCAL_HOST" \
         "ML_FOREIGN_ADMIN" "ML_FOREIGN_PASSWORD" "ML_FOREIGN_HOST"
 }
