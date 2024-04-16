@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+  primary:
+    image: marklogicdb/marklogic-db
+    container_name: primary_marklogic
+    hostname: primary-ml-docker
+    networks:
+      default:
+        aliases:
+          - docker.cluster1-node1.internal
+    volumes:
+      - primary_marklogic_vol:/var/opt/MarkLogic
+    environment:
+      MARKLOGIC_INIT: "true"
+      MARKLOGIC_ADMIN_USERNAME: admin
+      MARKLOGIC_ADMIN_PASSWORD: admin
+    ports:
+      - "7997:7997"
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+      - "8039:8039"
+      - "8040:8040"
+      - "8041:8041"
+      - "8043:8043"
+      - "9001:9001"
+      - "9002:9002"
+      - "9003:9003"
+      - "9004:9004"
+    mem_limit: 5g
+
+  secondary:
+    image: marklogicdb/marklogic-db
+    container_name: secondary_marklogic
+    hostname: secondary-ml-docker
+    networks:
+      default:
+        aliases:
+          - docker.cluster2-node1.internal
+    volumes:
+      - secondary_marklogic_vol:/var/opt/MarkLogic
+    environment:
+      MARKLOGIC_INIT: "true"
+      MARKLOGIC_ADMIN_USERNAME: admin
+      MARKLOGIC_ADMIN_PASSWORD: admin
+    ports:
+      - "8097:7997"
+      - "8100:8000"
+      - "8101:8001"
+      - "8102:8002"
+      - "8139:8039"
+      - "8140:8040"
+      - "8141:8041"
+      - "8143:8043"
+      - "9101:9001"
+      - "9102:9002"
+      - "9103:9003"
+      - "9104:9004"
+    mem_limit: 5g
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  primary_marklogic_vol:
+  secondary_marklogic_vol:
