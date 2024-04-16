@@ -1,3 +1,6 @@
+
+
+
 # Cluster testing
 
 This is a semi-automated test-suite for testing coupled clusters. All require
@@ -9,31 +12,51 @@ required.
 
 ## Pre-requisites
 
-Make sure other docker images are not running or occupying the same ports as
-defined in the docker-compose.yml file.
+This test depends on the marklogic-kubernetes helm chart. Instructions for
+setup and Pre-requisites for kubernetes are described there.
 
-A local marklogic docker image named marklogicdb/marklogic-db should exist in
-your docker library. Otherwise, modify the docker-compose.yml file.
-
-You should add the hostnames for the cluster nodes to your local hosts file. i.e.
-
-    127.0.0.1   docker.cluster1-node1.internal
-    127.0.0.1   docker.cluster2-node1.internal
+    https://github.com/marklogic/marklogic-kubernetes/blob/master/docs/Local_Development_Tutorial.md
 
 ## Instructions
 
+### Optional teardown
+
+If uncertain, please remove the existing pods first. You can check the presense
+of pods with the name `marklogic-local-dev-env-*` with the command:
+
+    kubectl get pods --all-namespaces
+
+Remove using the following command which could take up to minute.
+
+    bash test/cluster/teardown.sh
+
 ### Set up the local primary and secondary clusters
 
-    bash test/cluster/steps/0-setup.sh
+    bash test/cluster/setup.sh
 
-If the hosts file has been udpated, you can check this is working by visiting
-`http://docker.cluster2-node1.internal:8000` in your browser which is the same as `localhost:8100`
+To log into either admin inteface in the browser use:
 
-### Couple the clusters using the scripts
+    chart=primary
+    kubectl --namespace marklogic-${chart} port-forward marklogic-local-dev-env-0 8000 8001 8002 7997
 
-Check clusters are not coupled here: 
+### Test steps
 
-    bash test/cluster/steps/1-couple.sh --run
+Log into primary cluster node1 as follows:
 
-Verify coupling using same link:
+    kubectl exec --namespace marklogic-primary -it marklogic-local-dev-env-0 -- /bin/bash
+
+Change to the /tmp directory and execute each of the steps in order,
+inspecting the status of the primary and secondary cluster at each
+stage in between through ports 8000-8002. e.g.
+
+    cd /tmp
+	# Check that clusters are not coupled
+	bash 1-couple.sh
+	# check if clusters are coupled but testdb is not created
+	bash 2-create-database.sh
+	# Check that test db is created but replication is not setup
+	# etc. etc.
+
+
+
 
