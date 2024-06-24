@@ -20,9 +20,39 @@
     "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/ready/generate-cluster-diagram.sjs"
   },
   {
+    "label": "mldb/ready/logStreamer",
+    "type": "sjs",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/ready/logStreamer.sjs"
+  },
+  {
+    "label": "mldb/ready/zip-dir",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/ready/zip-dir.xqy"
+  },
+  {
+    "label": "mldb/recipes/compress-folder",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/recipes/compress-folder.xqy"
+  },
+  {
+    "label": "mldb/recipes/corb-collect",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/recipes/corb-collect.xqy"
+  },
+  {
+    "label": "mldb/recipes/corb-process",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/recipes/corb-process.xqy"
+  },
+  {
     "label": "mldb/recipes/globals",
     "type": "sjs",
     "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/recipes/globals.sjs"
+  },
+  {
+    "label": "mldb/recipes/list-directory-files",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/recipes/list-directory-files.xqy"
   },
   {
     "label": "mldb/recipes/spawner",
@@ -35,13 +65,13 @@
     "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/snippets/find-docs.sjs"
   },
   {
-    "label": "mldb/snippets/master-repl",
-    "type": "xqy",
-    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/snippets/master-replication.xqy"
-  },
-  {
-    "label": "mldb/snippets/foreign-repl",
+    "label": "mldb/snippets/foreign-replication",
     "type": "xqy",
     "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/snippets/foreign-replication.xqy"
+  },
+  {
+    "label": "mldb/snippets/master-replication",
+    "type": "xqy",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/snippets/master-replication.xqy"
   }
 ]
