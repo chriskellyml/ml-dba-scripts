@@ -4,8 +4,9 @@
   "description": "This is a collection of scripts to help with the management of a MarkLogic cluster.",
   "main": "index.js",
   "scripts": {
-    "update-sources": "node scripts/build/update-sources.js",
-    "build:registry": "bash scripts/build/update-registry.sh"
+    "update:sources": "bash scripts/build/update-sources.sh",
+    "build:registry": "bash scripts/build/update-registry.sh",
+    "build": "npm run update:sources && npm run build:registry"
   },
   "keywords": [],
   "author": "",
