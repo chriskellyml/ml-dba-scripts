@@ -6,4 +6,4 @@ function cpIfExists() {
   fi 
 }
 
-cpIfExists ../ml-log-stream/src/logStreamer.sjs ./qconsole/ready/logStreamer.sjs
+cpIfExists ../ml-log-stream/src/logStreamer.js ./qconsole/ready/logStreamer.sjs
