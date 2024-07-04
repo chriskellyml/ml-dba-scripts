@@ -15,8 +15,8 @@ services:
       - "8042:8041"
       - "7997:7997"
       - "7998:7998"
-    hostname: macquarie
-    container_name: ml-macquarie
+    hostname: simple-ml-host
+    container_name: simple-ml 
     environment:
       - MARKLOGIC_INIT=true
       - MARKLOGIC_ADMIN_USERNAME=admin
