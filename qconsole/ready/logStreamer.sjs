@@ -5,7 +5,8 @@
  * VERSION: 0.1
  */
 
-const OPTION = 2
+const LOG_PATH='/var/opt/MarkLogic/Logs'
+const OPTION = 1
 
 // Store different usage tests in the main function below
 const SIMPLE = 1, FOLLOW = 2, RECENT_MESSAGES = 3
@@ -14,7 +15,7 @@ switch (OPTION) {
     .filter(['a', '-eval'])       // filter out lines containing negative entries, filter in others
     .sortBy(['-date', 'desc'])       // negative sign means descending
     // .hosts([1, 2, 3])                // defaults to all hosts
-    // .type('access')                  // defaults to 'access'
+    .type('access')                  // defaults to 'access'
     // .logPath('/custom/path/to/Logs') // defaults to sensible defaults
     // .verbose()                       // defaults to false
     .format('txt')                   // defaults to 'json' (a json array) and can be 'csv' or 'text'
@@ -41,10 +42,7 @@ switch (OPTION) {
   default: showHelp(); break
 }
 
-/* LICENSE: MIT
- * NOTES: This script can be run direct from Query Console but is intended to be
- *        used by simply looping using client (e.g. bash, python, node, etc.)
- *
+/*
  * DESCRIPTION:
  * Find the last error in the log and prettify
  * - To ensure proper tailing, this script makes (light) use of server
@@ -81,7 +79,7 @@ function findInLogs() {
       this._hosts = []
       this._servers = []
       this._follow = false
-      this._logPath = '/var/opt/MarkLogic/Logs'
+      this._logPath = LOG_PATH
       this._output = ''
     }
     // Store user options in any order and execute in required order later
@@ -184,7 +182,6 @@ function findInLogs() {
             }
           }
         })
-      return result
       return [
         "DESCRIPTION: " + _description,
         "SORT BY: " + _sortBy,
@@ -195,7 +192,6 @@ function findInLogs() {
       ].join('\n')
 
       /*
-
       [
         "VERSION: " + VERSION,
         "===== LOG DATA =====",
@@ -261,6 +257,7 @@ function logStreamer(args) {
       switch (TYPE) {
         case 'access':
           LT = new AccessLogTracker()
+          console.log('New Access log tracker');
           if (LOG_PATH) LT.logPath = LOG_PATH
           LT.processLog(FILTER, FLAGS)
           break
@@ -298,7 +295,7 @@ function logStreamer(args) {
       get logPath() {
         return this._logPath || (platform() === 'winnt'
           ? '/Program Files/MarkLogic/Data/Logs'
-          : '/var/opt/MarkLogic/Logs')
+          : LOG_PATH)
       }
 
       set fileNameEnding(str) { this._fileNameEnding = str }
