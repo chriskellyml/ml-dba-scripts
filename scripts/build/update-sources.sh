@@ -7,3 +7,4 @@ function cpIfExists() {
 }
 
 cpIfExists ../ml-log-stream/src/logStreamer.js ./qconsole/ready/logStreamer.sjs
+cpIfExists ../ml-log-stream/src/extract-logs.xqy ./qconsole/ready/extract-logs.xqy 
