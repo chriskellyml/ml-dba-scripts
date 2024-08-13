@@ -15,6 +15,11 @@
     "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/ready/extract-logs.xqy"
   },
   {
+    "label": "mldb/ready/file-browse",
+    "type": "sjs",
+    "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/ready/file-browse.sjs"
+  },
+  {
     "label": "mldb/ready/generate-cluster-diagram",
     "type": "sjs",
     "url": "https://raw.githubusercontent.com/eurochriskelly/ml-dba-scripts/main/qconsole/ready/generate-cluster-diagram.sjs"
