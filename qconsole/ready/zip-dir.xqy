@@ -5,6 +5,10 @@ xquery version "1.0-ml";
  :)
 declare namespace dir = "http://marklogic.com/xdmp/directory";
 
+declare variable $DRY_RUN := true();
+declare variable $PATH := '/tmp/foo';
+
+(: I M P L E M E N T A T I O N :)
 declare function local:list-files($directory as xs:string) as xs:string* {
   let $entries := xdmp:filesystem-directory($directory)/dir:entry
   let $files :=
@@ -20,9 +24,6 @@ declare function local:list-files($directory as xs:string) as xs:string* {
      for $subdir in $directories
      return local:list-files($subdir))
 };
-
-declare variable $DRY_RUN := true();
-declare variable $PATH := '/tmp/foo';
 
 if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change to database to Documents to continue!", "") else
   let $files := local:list-files($PATH)

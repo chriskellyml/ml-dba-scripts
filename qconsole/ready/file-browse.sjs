@@ -1,5 +1,5 @@
 const entryPoint = '/export/data' 
-const hostname = '' # for a specific host use this
+const hostname = '' // for a specific host use this
 
 // IMPLEMENTATION
 const host = hostname || xdmp.hostName(xdmp.host())
