@@ -6,7 +6,7 @@ xquery version "1.0-ml";
 
 declare variable $DRY_RUN := true();
 
-declare variable $DAYS := (0,1,3);
+declare variable $DAYS := (0, '2024-08-21'); (:  or use datestrings e,g, "2023-03-02" :)
 declare variable $TYPES := ( 'ErrorLog', 'AccessLog', 'Request')[1];
 declare variable $PORT_LIST := (); (: e.g. ('8010', '8000') :)
 declare variable $HOST_LIST := ();
@@ -17,6 +17,20 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
   let $size-data := map:entry('size', 0)
   let $entries :=
     for $days-ago in $DAYS
+    let $days-ago := 
+      try {
+        if (xs:string(xdmp:type($days-ago)) eq "integer")
+        then $days-ago 
+        else 
+          let $tmp := xs:string(current-date() - xs:date($days-ago))
+          let $tmp := replace($tmp, 'PT', '')
+          let $tmp := replace($tmp, 'P', '')
+          let $tmp := replace($tmp, 'D', '')
+          let $tmp := replace($tmp, 'S', '')
+          return xs:integer($tmp)
+      } catch ($e) {
+        $e
+      }
     let $entries := (
       for $type in $TYPES
       for $host in xdmp:hosts()
@@ -60,7 +74,7 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
       "================== DRY RUN MODE =================",
       "   Please change $DRY_RUN to false to proceed    ",
       "=================================================",
-      "Download " || count($entries) || " files.",
+      "Ready to download " || count($entries) || " files.",
       "Total size uncompressed: " || (map:get($size-data, 'size') div 1000000) || " MB.",
       "Estimate compressed size: " || (map:get($size-data, 'size') div 20000000) || " MB.",
       $entries//*:path/xs:string(.)
@@ -94,3 +108,4 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
           "",
           "Please delete after downloading!"
       )
+
