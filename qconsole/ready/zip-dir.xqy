@@ -30,9 +30,18 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
   let $timestamp := fn:substring(fn:replace(xs:string(fn:current-dateTime()), '[^0-9]', ''), 1, 15)
   let $name := fn:string-join($timestamp, '_') || '.zip'
   let $dlUri := "/export/" || xdmp:get-current-user() || "/files_" || $name
-  let $contents := xdmp:zip-create(
-    <parts xmlns="xdmp:zip">{$files ! <part>{.}</part>}</parts>, 
-    ($files ! xdmp:external-binary(.))
-  )
-  return xdmp:document-insert($dlUri, $contents)
-
+  return
+    if ($DRY_RUN) then (
+      "Will download to " || $dlUri, 
+      "The following files:",
+      $files ! ("  " || .)
+    )
+    else
+      let $contents := xdmp:zip-create(
+        <parts xmlns="xdmp:zip">{$files ! <part>{.}</part>}</parts>, 
+        ($files ! xdmp:external-binary(.))
+      )
+      return (
+        xdmp:document-insert($dlUri, $contents),
+        "File saved to: " || $dlUri
+      )
