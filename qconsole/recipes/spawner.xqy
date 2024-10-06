@@ -4,6 +4,7 @@
 declare variable $DRY_RUN := fn:false();
 declare variable $BATCH_SIZE := 10;
 declare variable $LIMIT := 10000;
+declare variable $RUN_ON_DB := "Documents";
 
 (: IMPLEMENT!! THIS COLLECTOR SHOULD GATHER THE ITEMS TO PROCESS :)
 declare function local:collect() {
@@ -44,7 +45,7 @@ declare function local:distribute-tasks()
     else
       let $total := fn:ceiling($num div $BATCH_SIZE)
       return
-        for $i in (0 to $total)
+        for $i in (0 to $total - 1)
         let $start := ($i*$BATCH_SIZE + 1)
         let $next := $workToDo[$start to  $i*$BATCH_SIZE + $BATCH_SIZE]
         return (
@@ -61,5 +62,6 @@ declare function local:distribute-tasks()
         )
 };
 
+if (xdmp:database-name(xdmp:database()) ne $RUN_ON_DB) then ("", "Please change to database to Documents to continue!", "") else
 local:distribute-tasks()
 
