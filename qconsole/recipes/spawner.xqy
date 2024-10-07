@@ -7,12 +7,12 @@ declare variable $LIMIT := 10000;
 declare variable $RUN_ON_DB := "Documents";
 
 (: IMPLEMENT!! THIS COLLECTOR SHOULD GATHER THE ITEMS TO PROCESS :)
-declare function local:collect() {
+declare function local:collect() as item()* {
   let $workItems := (
     for $i in (1 to 100)
     return <item>{$i}</item>)[1 to $LIMIT]
+  (: Must return count and work to do :)
   return (count($workItems), $workItems)
-
 };
 
 (: IMPLEMENT!! THIS FUNCTION SHOULD DO THE ACTUAL WORK :)
@@ -62,6 +62,6 @@ declare function local:distribute-tasks()
         )
 };
 
-if (xdmp:database-name(xdmp:database()) ne $RUN_ON_DB) then ("", "Please change to database to Documents to continue!", "") else
+if (xdmp:database-name(xdmp:database()) ne $RUN_ON_DB) then ("", "Please change to database [" || $RUN_ON_DB || "] to continue!", "") else
 local:distribute-tasks()
 
