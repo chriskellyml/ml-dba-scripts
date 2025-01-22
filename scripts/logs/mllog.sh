@@ -2,7 +2,7 @@
 
 # Default values
 DEFAULT_LOG_DIR="./"
-DEFAULT_PATTERN="*Log.txt"
+DEFAULT_PATTERN="*"
 RUNNING_LOG="/tmp/running.log"
 
 # Function to display help
@@ -13,13 +13,14 @@ A script to view and manage log files.
 
 Options:
   --help                 Display this help and exit
-  --sessions             View logs interactively
+  --sessions [PATTERN]   View logs interactively with an optional pattern
   --validation [PATTERN] Watch and filter logs based on a given pattern
   --log-dir [DIR]        Specify the log directory (default: current directory)
-  --pattern [PATTERN]    Specify the file matching pattern (default: *Log.txt)
+  --pattern [PATTERN]    Specify the base file pattern (default: *)
 
 Examples:
   ${0##*/} --sessions
+  ${0##*/} --sessions "Error"
   ${0##*/} --validation "Error"
   ${0##*/} --log-dir /path/to/logs --sessions
 EOF
@@ -56,6 +57,9 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
+# Construct the full file pattern
+FULL_PATTERN="${PATTERN}Log.txt"
+
 # Check for log files in the specified directory
 if [[ ! -d "$LOG_DIR" ]]; then
   echo "Log directory not found: $LOG_DIR"
@@ -63,17 +67,18 @@ if [[ ! -d "$LOG_DIR" ]]; then
 fi
 
 # Check if any files match the pattern in the log directory without showing extra output
-if ! find "$LOG_DIR" -maxdepth 1 -type f -name "$PATTERN" >/dev/null 2>&1; then
+if ! find "$LOG_DIR" -maxdepth 1 -type f -name "$FULL_PATTERN" >/dev/null 2>&1; then
   echo "No valid log files found in directory: $LOG_DIR"
   exit 1
 fi
 
 log_viewer() {
   clear
-  echo "Running Log Viewer"
+  echo "Running Log Viewer with pattern: $FULL_PATTERN"
+  
   while true; do
     >"$RUNNING_LOG"
-    tail -f -q -n 0 "$LOG_DIR"/$PATTERN >"$RUNNING_LOG" &
+    tail -f -q -n 0 "$(pwd)"/$FULL_PATTERN >"$RUNNING_LOG" &
     TAIL_PID=$!
     disown $TAIL_PID
     echo "$(date) - Gathering data. Press ENTER to view ..."
@@ -86,7 +91,7 @@ log_viewer() {
 # Define the validation log function
 validation_log() {
   echo "Filtering logs with pattern: $FILTER"
-  tail -f -n 0 "$LOG_DIR"/$PATTERN | \
+  tail -f -n 0 "$LOG_DIR"/$FULL_PATTERN | \
     awk -F"Info:" '{print $2}' | \
     grep "$FILTER" | \
     sort
@@ -95,6 +100,10 @@ validation_log() {
 # Execute the appropriate command
 case $COMMAND in
   --sessions)
+    if [[ -n "$FILTER" ]]; then
+      PATTERN="$FILTER"
+      FULL_PATTERN="${PATTERN}Log.txt"
+    fi
     log_viewer
     ;;
   --validation)
