@@ -1,5 +1,18 @@
 #!/bin/bash
 
+TAIL_PID=""
+
+# Function to clean up background processes
+cleanup() {
+  if [[ -n "$TAIL_PID" ]]; then
+    echo "Cleaning up... Killing tail process (PID: $TAIL_PID)"
+    kill -9 "$TAIL_PID" 2>/dev/null || true
+  fi
+}
+
+# Trap script exit and interruption signals
+trap cleanup EXIT INT TERM
+
 # Default values
 DEFAULT_LOG_DIR="./"
 DEFAULT_PATTERN="*"
@@ -77,13 +90,14 @@ log_viewer() {
   echo "Running Log Viewer with pattern: $FULL_PATTERN"
   
   while true; do
-    >"$RUNNING_LOG"
-    tail -f -q -n 0 "$(pwd)"/$FULL_PATTERN >"$RUNNING_LOG" &
+    logfile="${RUNNING_LOG}${FULL_PATTERN}"
+    >"$logfile"
+    tail -f -q -n 0 "$(pwd)"/*$FULL_PATTERN >"$logfile" &
     TAIL_PID=$!
     disown $TAIL_PID
     echo "$(date) - Gathering data. Press ENTER to view ..."
     read -r
-    less -N "$RUNNING_LOG"
+    less -fN "$logfile"
     kill "$TAIL_PID" 2>/dev/null
   done
 }
