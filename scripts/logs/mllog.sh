@@ -7,6 +7,7 @@ cleanup() {
   if [[ -n "$TAIL_PID" ]]; then
     echo "Cleaning up... Killing tail process (PID: $TAIL_PID)"
     kill -9 "$TAIL_PID" 2>/dev/null || true
+    exit 0
   fi
 }
 
@@ -16,7 +17,7 @@ trap cleanup EXIT INT TERM
 # Default values
 DEFAULT_LOG_DIR="./"
 DEFAULT_PATTERN="*"
-RUNNING_LOG="/tmp/running.log"
+RUNNING_LOG="/tmp/running"
 
 # Function to display help
 show_help() {
@@ -86,18 +87,24 @@ if ! find "$LOG_DIR" -maxdepth 1 -type f -name "$FULL_PATTERN" >/dev/null 2>&1; 
 fi
 
 log_viewer() {
+  cd "$LOG_DIR" || { echo "Failed to change to directory: $LOG_DIR"; exit 1; }
   clear
   echo "Running Log Viewer with pattern: $FULL_PATTERN"
   
+  if [ ! -f "$(pwd)/ErrorLog.txt" ];then
+    echo "No logs found in the current directory."
+    exit 1
+  fi
+
   while true; do
-    logfile="${RUNNING_LOG}${FULL_PATTERN}"
-    >"$logfile"
-    tail -f -q -n 0 "$(pwd)"/*$FULL_PATTERN >"$logfile" &
+    RUNNING_LOG="${RUNNING_LOG}_${FULL_PATTERN}"
+    >"$RUNNING_LOG"
+    tail -f -q -n 0 "$(pwd)"/*$FULL_PATTERN >"$RUNNING_LOG" &
     TAIL_PID=$!
     disown $TAIL_PID
-    echo "$(date) - Gathering data. Press ENTER to view ..."
+    echo "$(date) - Gathering data in [$RUNNING_LOG]. Press ENTER to view ..."
     read -r
-    less -fN "$logfile"
+    less -fN "$RUNNING_LOG"
     kill "$TAIL_PID" 2>/dev/null
   done
 }
@@ -132,3 +139,6 @@ case $COMMAND in
     exit 1
     ;;
 esac
+
+
+
