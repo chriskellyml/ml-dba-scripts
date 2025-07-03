@@ -30,27 +30,29 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
     cts:uris((), (), $SELECT_QUERY)[1 to $LIMIT]
   }, $OPTS)
   let $timestamp := fn:substring(fn:replace(xs:string(fn:current-dateTime()), '[^0-9]', ''), 1, 15)
-  let $dump := xdmp:invoke-function(function() {
-    let $rows := $uris ! (
-      . || ',' ||
-      fn:string-join(xdmp:document-get-collections(.), '|') || ',' ||
-      xdmp:base64-encode(xdmp:quote(xdmp:document-get-permissions(.))) || ',' ||
-      xdmp:base64-encode(xdmp:quote(doc(.)/node()))
-    )
-    let $headers := (
-      "# Exported info ",
-      "# "|| xdmp:quote(map:new((
-        map:entry('host', xdmp:host-name(xdmp:host())),
-        map:entry('time', fn:current-dateTime()),
-        map:entry('dump_id', 'dump_' || $timestamp),
-        map:entry('user', xdmp:get-current-user()),
-        map:entry('count', count($uris)),
-        map:entry('query', $SELECT_QUERY)
-      ))),
-      "URI,COLLECTIONS,PERMISSION,CONTENT"
-    )
-    return fn:string-join(($headers, $rows ), '&#10;')
-  }, $OPTS)
+  let $dump :=
+    if ($FORMAT = "ZIP") then ()
+    else xdmp:invoke-function(function() {
+      let $rows := $uris ! (
+        . || ',' ||
+        fn:string-join(xdmp:document-get-collections(.), '|') || ',' ||
+        xdmp:base64-encode(xdmp:quote(xdmp:document-get-permissions(.))) || ',' ||
+        xdmp:base64-encode(xdmp:quote(doc(.)/node()))
+      )
+      let $headers := (
+        "# Exported info ",
+        "# "|| xdmp:quote(map:new((
+          map:entry('host', xdmp:host-name(xdmp:host())),
+          map:entry('time', fn:current-dateTime()),
+          map:entry('dump_id', 'dump_' || $timestamp),
+          map:entry('user', xdmp:get-current-user()),
+          map:entry('count', count($uris)),
+          map:entry('query', $SELECT_QUERY)
+        ))),
+        "URI,COLLECTIONS,PERMISSION,CONTENT"
+      )
+      return fn:string-join(($headers, $rows ), '&#10;')
+    }, $OPTS)
           
   let $storeForDownload := function ($contents) {
     let $name := fn:string-join($timestamp, '_') || '.' || fn:lower-case($FORMAT)
@@ -71,12 +73,24 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
     if ($DRY_RUN)
     then (  
       "Found " || count($uris) || " documents",
-      fn:substring($dump, 1, 1000)
+      if ($FORMAT = "ZIP")
+      then $uris[1 to 10]
+      else fn:substring($dump, 1, 1000)
     )
     else
       switch ($FORMAT)
       case 'RAW' return $dump
       case 'CSV' return $storeForDownload(text { $dump })
       case 'CSVZIP' return $storeForDownload(xdmp:zip-create(<parts xmlns="xdmp:zip"><part>export_dump.csv</part></parts>, text { $dump }))
-      case 'ZIP' return $storeForDownload(xdmp:zip-create(<parts xmlns="xdmp:zip"><part>export_dump.csv</part></parts>, text { $dump }))
+      case 'ZIP' return
+        let $zip-content := xdmp:invoke-function(function() {
+          xdmp:zip-create(
+            <parts xmlns="xdmp:zip">{
+              for $uri in $uris
+              return <part>{fn:replace($uri, "^/", "")}</part>
+            }</parts>,
+            $uris ! doc($uri)
+          )
+        }, $OPTS)
+        return $storeForDownload($zip-content)
       default return "Unsupport FORMAT [" || $FORMAT || ']'
