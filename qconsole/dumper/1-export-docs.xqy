@@ -12,7 +12,7 @@ declare variable $SELECT_QUERY :=
 (: For complex queries, it may be easier to export the list to the Documents database :)
 declare variable $URI_LIST := (); (: doc('/uris/list.xml')//uri/xs:string(.); :)
 declare variable $LIMIT := 5000;
-declare variable $FORMAT := 'ZIP'; (: RAW, CSV, ZIP :)
+declare variable $FORMAT := 'ZIP'; (: RAW, CSV, CSVZIP, ZIP :)
 
 (::::   I M P L E M E N T A T I O N   ::::)
 (:~
@@ -25,7 +25,7 @@ declare variable $FORMAT := 'ZIP'; (: RAW, CSV, ZIP :)
 if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change to database to Documents to continue!", "") else
   (: Create a query used to select URIs:)
   let $_ := ('csv', 'zip') ! cts:uri-match('/export/*/dump_2*' || .) ! xdmp:document-delete(.)
-  let $OPTS := <options xmlns="xdmp:eval"><database>{xdmp:database('cup-content')}</database></options>
+  let $OPTS := <options xmlns="xdmp:eval"><database>{xdmp:database('Documents')}</database></options>
   let $uris :=  if (not(empty($URI_LIST))) then $URI_LIST else xdmp:invoke-function(function() {
     cts:uris((), (), $SELECT_QUERY)[1 to $LIMIT]
   }, $OPTS)
@@ -77,5 +77,6 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
       switch ($FORMAT)
       case 'RAW' return $dump
       case 'CSV' return $storeForDownload(text { $dump })
+      case 'CSVZIP' return $storeForDownload(xdmp:zip-create(<parts xmlns="xdmp:zip"><part>export_dump.csv</part></parts>, text { $dump }))
       case 'ZIP' return $storeForDownload(xdmp:zip-create(<parts xmlns="xdmp:zip"><part>export_dump.csv</part></parts>, text { $dump }))
       default return "Unsupport FORMAT [" || $FORMAT || ']'

@@ -96,8 +96,8 @@ log_viewer() {
     exit 1
   fi
 
+  RUNNING_LOG="${RUNNING_LOG}_${FULL_PATTERN}"
   while true; do
-    RUNNING_LOG="${RUNNING_LOG}_${FULL_PATTERN}"
     >"$RUNNING_LOG"
     tail -f -q -n 0 "$(pwd)"/*$FULL_PATTERN >"$RUNNING_LOG" &
     TAIL_PID=$!
