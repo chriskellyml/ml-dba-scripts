@@ -1,6 +1,21 @@
 xquery version "1.0-ml";
 (:~
- : This query should be run from the MarkLogic query console.
+ : Extracts MarkLogic server logs and creates a downloadable ZIP file.
+ : 
+ : USAGE:
+ : 1. Run this query in MarkLogic Query Console (database: Documents)
+ : 2. Set $DRY_RUN to false() to actually download files
+ : 3. Configure variables below as needed
+ : 
+ : CONFIGURATION:
+ : - $DAYS: Days to go back (0=today, or use date strings like "2024-08-21")
+ : - $TYPES: Log types to extract ('ErrorLog', 'AccessLog', 'Request')
+ : - $PORT_LIST: Specific ports to filter (empty = all ports)
+ : - $HOST_LIST: Specific hosts to include (empty = all hosts)
+ : - $HOST_EXCLUDE_LIST: Hosts to exclude
+ : - $LOG_PATH: Path to log files (default: '/var/opt/MarkLogic/Logs')
+ : 
+ : OUTPUT: Creates downloadable ZIP file with logs organized by host/date
  : @DEFAULTS:database=Documents
  :)
 
@@ -20,11 +35,11 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
     let $size-data := map:entry('size', 0)
     let $entries :=
       for $days-ago in $DAYS
-      let $days-ago := 
+      let $days-ago :=
         try {
           if (xs:string(xdmp:type($days-ago)) eq "integer")
-          then $days-ago 
-          else 
+          then $days-ago
+          else
             let $tmp := xs:string(current-date() - xs:date($days-ago))
             let $tmp := replace($tmp, 'PT', '')
             let $tmp := replace($tmp, 'P', '')
@@ -97,7 +112,7 @@ if (xdmp:database-name(xdmp:database()) ne 'Documents') then ("", "Please change
               || '/' || $e/*:filename/xs:string(.)
             }</part>
           }</parts>,
-          $entries ! text { 
+          $entries ! text {
             let $path := ./*:path/xs:string(.)
             return try {
               xdmp:filesystem-file($path)
