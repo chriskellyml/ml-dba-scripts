@@ -53,4 +53,14 @@ bash scripts/cluster/couple.sh --run
 # Edit env.my-env.sh with required params for "my-env"
 source env.my-env.sh
 bash scripts/cluster/couple.sh --run
+
+### QConsole Ready Tools
+
+The following scripts in the `qconsole/ready` folder provide quick tools for managing and monitoring your MarkLogic environment:
+
+- **file-browse.sjs:** A script for browsing the MarkLogic server filesystem and listing directories/files.
+- **zip-dir.xqy:** An XQuery script to compress a directory into a downloadable ZIP file.
+- **generate-cluster-diagram.sjs:** Generates an HTML diagram representing the cluster configuration, including forests and hosts.
+- **logStreamer.sjs:** Streams and processes log files from MarkLogic, supporting various formats (CSV, JSON, text).
+- **extract-logs.xqy:** Extracts logs based on specified criteria and creates a ZIP archive organized by host and date.
 ```
