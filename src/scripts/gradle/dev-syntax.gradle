@@ -1,0 +1,297 @@
+def devSyntaxEvalScript = '''
+xquery version "1.0-ml";
+
+declare namespace error = "http://marklogic.com/xdmp/error";
+
+declare variable $module external;
+declare variable $contentDb external;
+declare variable $modulesDb external;
+
+try {
+  xdmp:eval(
+    $module,
+    (),
+    <options xmlns="xdmp:eval">
+      <database>{xdmp:database($contentDb)}</database>
+      <modules>{xdmp:database($modulesDb)}</modules>
+    </options>
+  ),
+  ()
+} catch ($ex) {
+  let $frame := $ex/error:stack/error:frame[1]
+  return
+    <syntax-error>
+      <code>{$ex/error:code/fn:string()}</code>
+      <message>{$ex/error:format-string/fn:string()}</message>
+      <line>{$frame/error:line/fn:string()}</line>
+      <column>{$frame/error:column/fn:string()}</column>
+    </syntax-error>
+}
+'''.trim()
+
+def devSyntaxRunCommand = { List<String> command, File directory ->
+  try {
+    def process = new ProcessBuilder(command)
+      .directory(directory)
+      .start()
+    def stdout = new StringBuffer()
+    def stderr = new StringBuffer()
+    process.consumeProcessOutput(stdout, stderr)
+    def exitCode = process.waitFor()
+    [available: true, exitCode: exitCode, stdout: stdout.toString(), stderr: stderr.toString()]
+  } catch (IOException ex) {
+    [available: false, exitCode: -1, stdout: '', stderr: ex.message]
+  }
+}
+
+def devSyntaxGitContext = { File scanDir ->
+  def insideWorkTree = devSyntaxRunCommand(['git', 'rev-parse', '--is-inside-work-tree'], scanDir)
+  if (!insideWorkTree.available || insideWorkTree.exitCode != 0 || insideWorkTree.stdout.trim() != 'true') {
+    return null
+  }
+
+  def repoRoot = devSyntaxRunCommand(['git', 'rev-parse', '--show-toplevel'], scanDir)
+  if (repoRoot.exitCode != 0) {
+    throw new GradleException("Unable to determine git repository root for ${scanDir}: ${repoRoot.stderr.trim()}")
+  }
+
+  [repoRoot: new File(repoRoot.stdout.trim()).canonicalFile]
+}
+
+def devSyntaxRelativePath = { File baseDir, File target ->
+  def basePath = baseDir.canonicalFile.toPath()
+  def targetPath = target.canonicalFile.toPath()
+  basePath.relativize(targetPath).toString().replace(File.separator, '/')
+}
+
+def devSyntaxDisplayPath = { File baseDir, File target ->
+  def relativePath = devSyntaxRelativePath(baseDir, target)
+  relativePath ? relativePath : '.'
+}
+
+def devSyntaxCollectFilesystemFiles = { File scanDir ->
+  fileTree(scanDir) {
+    include '**/*.xq'
+    include '**/*.xqy'
+    include '**/*.xquery'
+  }.files.findAll { it.isFile() }.collect { it.canonicalFile }.sort { File left, File right ->
+    devSyntaxRelativePath(rootDir, left) <=> devSyntaxRelativePath(rootDir, right)
+  }
+}
+
+def devSyntaxCollectFiles = { File scanDir, boolean includeAllFiles ->
+  def gitContext = devSyntaxGitContext(scanDir)
+  if (gitContext == null) {
+    return devSyntaxCollectFilesystemFiles(scanDir)
+  }
+
+  def repoRoot = gitContext.repoRoot
+  def repoRootPath = repoRoot.toPath()
+  def scanDirPath = scanDir.canonicalFile.toPath()
+  def relativePaths = new LinkedHashSet<String>()
+
+  if (includeAllFiles) {
+    def allTrackedFiles = devSyntaxRunCommand(['git', 'ls-files'], repoRoot)
+    if (allTrackedFiles.exitCode != 0) {
+      throw new GradleException("Unable to list tracked files: ${allTrackedFiles.stderr.trim()}")
+    }
+    allTrackedFiles.stdout.readLines().each { String line ->
+      if (line) {
+        relativePaths << line.trim()
+      }
+    }
+  } else {
+    [
+      ['git', 'diff', '--name-only', '--cached'],
+      ['git', 'diff', '--name-only'],
+      ['git', 'ls-files', '--others', '--exclude-standard']
+    ].each { List<String> command ->
+      def result = devSyntaxRunCommand(command, repoRoot)
+      if (result.exitCode != 0) {
+        throw new GradleException("Unable to collect changed files with `${command.join(' ')}`: ${result.stderr.trim()}")
+      }
+      result.stdout.readLines().each { String line ->
+        if (line) {
+          relativePaths << line.trim()
+        }
+      }
+    }
+  }
+
+  relativePaths.collect { String relativePath ->
+    new File(repoRoot, relativePath).canonicalFile
+  }.findAll { File candidate ->
+    candidate.isFile() &&
+      candidate.toPath().startsWith(scanDirPath) &&
+      ['.xq', '.xqy', '.xquery'].any { String extension -> candidate.name.toLowerCase(java.util.Locale.ROOT).endsWith(extension) }
+  }.sort { File left, File right ->
+    devSyntaxRelativePath(rootDir, left) <=> devSyntaxRelativePath(rootDir, right)
+  }
+}
+
+def devSyntaxIsLibraryModule = { File sourceFile ->
+  sourceFile.readLines('UTF-8').any { String line ->
+    line ==~ /\s*module namespace\b.*/
+  }
+}
+
+def devSyntaxModuleSource = { File sourceFile ->
+  def source = sourceFile.getText('UTF-8')
+  if (!devSyntaxIsLibraryModule(sourceFile)) {
+    return source
+  }
+
+  def withoutModuleDeclaration = source.replaceFirst(/(?m)^[ \t]*module namespace\b.*(?:\r?\n)?/, '')
+  withoutModuleDeclaration.endsWith('\n') ? "${withoutModuleDeclaration}()" : "${withoutModuleDeclaration}\n()"
+}
+
+def devSyntaxParseResponse = { String response ->
+  if (!response?.trim()) {
+    return [success: true]
+  }
+
+  try {
+    def xml = new XmlSlurper().parseText(response)
+    if (xml.name() == 'syntax-error') {
+      return [
+        success: false,
+        code   : xml.code.text(),
+        message: xml.message.text(),
+        line   : xml.line.text(),
+        column : xml.column.text()
+      ]
+    }
+  } catch (org.xml.sax.SAXParseException ignored) {
+    // Fall through to report the raw response body below.
+  }
+
+  [success: false, raw: response.trim()]
+}
+
+def devSyntaxParseInteger = { String value ->
+  if (!value?.trim()) {
+    return null
+  }
+
+  try {
+    value.toInteger()
+  } catch (NumberFormatException ignored) {
+    null
+  }
+}
+
+def devSyntaxContext = { File sourceFile, Integer lineNumber ->
+  if (lineNumber == null || lineNumber < 1) {
+    return []
+  }
+
+  def lines = sourceFile.readLines('UTF-8')
+  if (lines.isEmpty() || lineNumber > lines.size()) {
+    return []
+  }
+
+  def startLine = Math.max(1, lineNumber - 2)
+  def endLine = Math.min(lines.size(), lineNumber + 2)
+  (startLine..endLine).collect { int currentLine ->
+    String.format(java.util.Locale.ROOT, '    %4d | %s', currentLine, lines[currentLine - 1])
+  }
+}
+
+def devSyntaxRun = { boolean includeAllFiles ->
+  def scanDir = project.findProperty('devSyntaxRoot') ? file(project.property('devSyntaxRoot')) : rootDir
+  if (!scanDir.exists()) {
+    throw new GradleException("devSyntaxRoot does not exist: ${scanDir}")
+  }
+  if (!scanDir.isDirectory()) {
+    throw new GradleException("devSyntaxRoot is not a directory: ${scanDir}")
+  }
+
+  def contentDbName = (project.findProperty('mlContentDbName') ?: 'lvbb-content').toString()
+  def modulesDbName = (project.findProperty('mlModulesDbName') ?: 'lvbb-modules').toString()
+  def selectedFiles = devSyntaxCollectFiles(scanDir, includeAllFiles)
+
+  if (selectedFiles.isEmpty()) {
+    def scope = includeAllFiles ? 'XQuery files' : 'changed XQuery files'
+    println "No ${scope} found under ${devSyntaxDisplayPath(rootDir, scanDir.canonicalFile)}"
+    return
+  }
+
+  def results = []
+  def failures = []
+  def client = newClient()
+
+  try {
+    selectedFiles.each { File sourceFile ->
+      def relativePath = devSyntaxRelativePath(rootDir, sourceFile)
+      if (!devSyntaxIsLibraryModule(sourceFile)) {
+        results << [status: 'MAIN', path: relativePath]
+        return
+      }
+
+      def response = client.newServerEval()
+        .xquery(devSyntaxEvalScript)
+        .addVariable('module', devSyntaxModuleSource(sourceFile))
+        .addVariable('contentDb', contentDbName)
+        .addVariable('modulesDb', modulesDbName)
+        .evalAs(String.class)
+
+      def parsedResponse = devSyntaxParseResponse(response)
+      if (parsedResponse.success) {
+        results << [status: 'PASS', path: relativePath]
+      } else {
+        def lineNumber = devSyntaxParseInteger(parsedResponse.line)
+        def columnNumber = devSyntaxParseInteger(parsedResponse.column)
+        def failure = [
+          path   : relativePath,
+          code   : parsedResponse.code ?: 'SYNTAX-ERROR',
+          message: parsedResponse.message ?: parsedResponse.raw,
+          line   : lineNumber,
+          column : columnNumber,
+          context: devSyntaxContext(sourceFile, lineNumber)
+        ]
+        results << [status: 'FAIL', path: relativePath]
+        failures << failure
+      }
+    }
+  } finally {
+    client.release()
+  }
+
+  println "XQuery syntax check (${includeAllFiles ? 'all files' : 'changed files'})"
+  results.each { Map result ->
+    println String.format(java.util.Locale.ROOT, '[%s] %s', result.status, result.path)
+  }
+
+  if (!failures.isEmpty()) {
+    println ''
+    failures.each { Map failure ->
+      println "Failure: ${failure.path}"
+      println "  ${failure.code}: ${failure.message}"
+      if (failure.line != null) {
+        def location = failure.column != null ? "${failure.line}:${failure.column}" : "${failure.line}"
+        println "  at ${location}"
+      }
+      failure.context.each { String line ->
+        println line
+      }
+      println ''
+    }
+    throw new GradleException("Found ${failures.size()} XQuery syntax error(s)")
+  }
+}
+
+task devSyntax {
+  group 'CDS Dev'
+  description 'Check syntax of changed XQuery library modules'
+  doLast {
+    devSyntaxRun(false)
+  }
+}
+
+task devSyntaxAll {
+  group 'CDS Dev'
+  description 'Check syntax of all XQuery library modules'
+  doLast {
+    devSyntaxRun(true)
+  }
+}
