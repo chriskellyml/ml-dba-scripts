@@ -18,7 +18,7 @@ help:
 	@echo ""
 	@echo "copy-database options:"
 	@echo "  FROM       Source database name (required)"
-	@echo "  TO         Destination database name (required)"
+	@echo "  TO         Destination database name (default: <FROM>-clone)"
 	@echo "  LIMIT      Documents per CoRB page (default: 1000000)"
 	@echo "  THREADS    CoRB worker threads (default: 4)"
 	@echo "  BATCH      Documents per transaction (default: 1)"
@@ -57,10 +57,9 @@ clean:
 .PHONY: copy-database
 copy-database:
 	@test -n "$(FROM)" || (echo "FROM is required" >&2; exit 2)
-	@test -n "$(or $(TO),$(TO))" || (echo "TO is required" >&2; exit 2)
 	@test -n "$(USER)" || (echo "USER is required" >&2; exit 2)
 	@test -n "$(PASS)" || (echo "PASS is required" >&2; exit 2)
-	@FROM='$(FROM)' TO='$(or $(TO),$(TO))' LIMIT='$(or $(LIMIT),1000000)' \
+	@FROM='$(FROM)' TO='$(TO)' LIMIT='$(or $(LIMIT),1000000)' \
 		THREADS='$(or $(THREADS),4)' BATCH='$(or $(BATCH),1)' \
 		PAGELIM='$(PAGELIM)' \
 		HOST='$(or $(HOST),localhost)' PORT='$(or $(PORT),8000)' \

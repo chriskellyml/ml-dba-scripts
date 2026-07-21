@@ -4,8 +4,7 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 FROM=${FROM:?FROM is required}
-TARGET=${TO:-${TO:-}}
-: "${TARGET:?TO is required}"
+TARGET=${TO:-${FROM}-clone}
 LIMIT=${LIMIT:-1000000}
 THREADS=${THREADS:-4}
 BATCH=${BATCH:-1}
