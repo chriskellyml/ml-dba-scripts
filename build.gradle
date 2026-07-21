@@ -1,0 +1,46 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    runtimeOnly 'com.marklogic:marklogic-corb:2.6.0'
+    runtimeOnly 'com.marklogic:marklogic-xcc:12.0.1'
+}
+
+tasks.register('corb', JavaExec) {
+    group = 'MarkLogic'
+    description = 'Runs one page of the database copy CoRB job.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.marklogic.developer.corb.Manager'
+
+    def required = ['host', 'port', 'username', 'source', 'target',
+                    'limit', 'page', 'threads', 'batch']
+    doFirst {
+        required.each { name ->
+            if (!project.hasProperty(name)) {
+                throw new GradleException("Missing required property: -P${name}")
+            }
+        }
+    }
+    doFirst {
+        if (!System.getenv('PASS')) {
+            throw new GradleException('Missing required environment variable: PASS')
+        }
+    }
+
+    systemProperty 'OPTIONS-FILE', file('src/corb/database-copy/run.job').absolutePath
+    systemProperty 'XCC-HOSTNAME', providers.gradleProperty('host').getOrElse('')
+    systemProperty 'XCC-PORT', providers.gradleProperty('port').getOrElse('')
+    systemProperty 'XCC-USERNAME', providers.gradleProperty('username').getOrElse('')
+    systemProperty 'XCC-PASSWORD', System.getenv('PASS') ?: ''
+    systemProperty 'XCC-DBNAME', providers.gradleProperty('source').getOrElse('')
+    systemProperty 'THREAD-COUNT', providers.gradleProperty('threads').getOrElse('')
+    systemProperty 'BATCH-SIZE', providers.gradleProperty('batch').getOrElse('')
+    systemProperty 'URIS-MODULE.LIMIT', providers.gradleProperty('limit').getOrElse('')
+    systemProperty 'URIS-MODULE.PAGE', providers.gradleProperty('page').getOrElse('')
+    systemProperty 'PROCESS-MODULE.TARGET', providers.gradleProperty('target').getOrElse('')
+}

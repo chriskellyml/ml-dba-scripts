@@ -1,0 +1,5 @@
+URIS-MODULE=src/corb/database-copy/collect.xqy|ADHOC
+PROCESS-MODULE=src/corb/database-copy/process.xqy|ADHOC
+MODULES-DATABASE=0
+FAIL-ON-ERROR=true
+DISK-QUEUE=true

@@ -2,3 +2,5 @@ env.*.sh
 *~
 \#*
 node_modules/
+.gradle/
+build/

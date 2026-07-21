@@ -33,3 +33,14 @@ clean:
 		rm -f "$$dest_path"; \
 	done
 	@echo "Cleanup complete."
+
+.PHONY: copy-database
+copy-database:
+	@test -n "$(FROM)" || (echo "FROM is required" >&2; exit 2)
+	@test -n "$(or $(DTO),$(TO))" || (echo "DTO is required" >&2; exit 2)
+	@test -n "$(USER)" || (echo "USER is required" >&2; exit 2)
+	@test -n "$(PASS)" || (echo "PASS is required" >&2; exit 2)
+	@FROM='$(FROM)' DTO='$(or $(DTO),$(TO))' LIMIT='$(or $(LIMIT),1000000)' \
+		THREADS='$(or $(THREADS),4)' BATCH='$(or $(BATCH),1)' \
+		HOST='$(or $(HOST),localhost)' PORT='$(or $(PORT),8000)' \
+		USER='$(USER)' PASS='$(PASS)' ./copy-database.sh
