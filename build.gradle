@@ -42,5 +42,6 @@ tasks.register('corb', JavaExec) {
     systemProperty 'BATCH-SIZE', providers.gradleProperty('batch').getOrElse('')
     systemProperty 'URIS-MODULE.LIMIT', providers.gradleProperty('limit').getOrElse('')
     systemProperty 'URIS-MODULE.PAGE', providers.gradleProperty('page').getOrElse('')
+    systemProperty 'PROCESS-MODULE.SOURCE', providers.gradleProperty('source').getOrElse('')
     systemProperty 'PROCESS-MODULE.TARGET', providers.gradleProperty('target').getOrElse('')
 }
