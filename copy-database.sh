@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 FROM=${FROM:?FROM is required}
-TARGET=${DTO:-${TO:-}}
-: "${TARGET:?DTO is required}"
+TARGET=${TO:-${TO:-}}
+: "${TARGET:?TO is required}"
 LIMIT=${LIMIT:-1000000}
 THREADS=${THREADS:-4}
 BATCH=${BATCH:-1}
@@ -22,7 +22,7 @@ for value in "$LIMIT" "$THREADS" "$BATCH"; do
 done
 
 if [[ $FROM == "$TARGET" ]]; then
-  printf 'FROM and DTO must name different databases\n' >&2
+  printf 'FROM and TO must name different databases\n' >&2
   exit 2
 fi
 
