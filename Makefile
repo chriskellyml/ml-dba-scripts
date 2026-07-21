@@ -22,6 +22,7 @@ help:
 	@echo "  LIMIT      Documents per CoRB page (default: 1000000)"
 	@echo "  THREADS    CoRB worker threads (default: 4)"
 	@echo "  BATCH      Documents per transaction (default: 1)"
+	@echo "  PAGELIM    Stop after this many pages, for testing (default: unlimited)"
 	@echo "  HOST       MarkLogic host (default: localhost)"
 	@echo "  PORT       REST/XCC App Server port (default: 8000)"
 	@echo "  USER       MarkLogic username (required)"
@@ -61,5 +62,6 @@ copy-database:
 	@test -n "$(PASS)" || (echo "PASS is required" >&2; exit 2)
 	@FROM='$(FROM)' TO='$(or $(TO),$(TO))' LIMIT='$(or $(LIMIT),1000000)' \
 		THREADS='$(or $(THREADS),4)' BATCH='$(or $(BATCH),1)' \
+		PAGELIM='$(PAGELIM)' \
 		HOST='$(or $(HOST),localhost)' PORT='$(or $(PORT),8000)' \
 		USER='$(USER)' PASS='$(PASS)' ./copy-database.sh

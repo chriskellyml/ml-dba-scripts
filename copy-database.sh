@@ -9,6 +9,7 @@ TARGET=${TO:-${TO:-}}
 LIMIT=${LIMIT:-1000000}
 THREADS=${THREADS:-4}
 BATCH=${BATCH:-1}
+PAGELIM=${PAGELIM:-}
 HOST=${HOST:-localhost}
 PORT=${PORT:-8000}
 USER=${USER:?USER is required}
@@ -20,6 +21,11 @@ for value in "$LIMIT" "$THREADS" "$BATCH"; do
     exit 2
   fi
 done
+
+if [[ -n $PAGELIM && ! $PAGELIM =~ ^[1-9][0-9]*$ ]]; then
+  printf 'PAGELIM must be a positive integer\n' >&2
+  exit 2
+fi
 
 if [[ $FROM == "$TARGET" ]]; then
   printf 'FROM and TO must name different databases\n' >&2
@@ -81,6 +87,10 @@ if (( total == 0 )); then
 fi
 
 pages=$(( (total + LIMIT - 1) / LIMIT ))
+if [[ -n $PAGELIM && $PAGELIM -lt $pages ]]; then
+  printf 'PAGELIM=%d set; will run %d of %d page(s).\n' "$PAGELIM" "$PAGELIM" "$pages"
+  pages=$PAGELIM
+fi
 printf 'Copying %d documents in %d page(s), up to %d documents per page.\n' \
   "$total" "$pages" "$LIMIT"
 
