@@ -1,8 +1,9 @@
 xquery version "1.0-ml";
 
+declare namespace prop = "http://marklogic.com/xdmp/property";
+
 declare variable $URI as xs:string external;
 declare variable $TARGET as xs:string external;
-declare namespace prop = "http://marklogic.com/xdmp/property";
 
 for $uri in fn:tokenize($URI, ";")
 let $document := fn:doc($uri)
