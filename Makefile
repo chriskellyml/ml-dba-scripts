@@ -6,10 +6,29 @@ DEST_DIR := /usr/local/bin
 SCRIPTS := \
     logs/mllog.sh
 
-# Default rule (optional, just prints help)
-.PHONY: all
-all:
-	@echo "Run 'sudo make install' to install scripts."
+# Default rule
+.PHONY: all help
+all: help
+
+help:
+	@echo "Available targets:"
+	@echo "  make copy-database FROM=<source> DTO=<destination> [options]"
+	@echo "  sudo make install"
+	@echo "  sudo make clean"
+	@echo ""
+	@echo "copy-database options:"
+	@echo "  FROM       Source database name (required)"
+	@echo "  DTO        Destination database name (required)"
+	@echo "  LIMIT      Documents per CoRB page (default: 1000000)"
+	@echo "  THREADS    CoRB worker threads (default: 4)"
+	@echo "  BATCH      Documents per transaction (default: 1)"
+	@echo "  HOST       MarkLogic host (default: localhost)"
+	@echo "  PORT       REST/XCC App Server port (default: 8000)"
+	@echo "  USER       MarkLogic username (required)"
+	@echo "  PASS       MarkLogic password (required)"
+	@echo ""
+	@echo "Example:"
+	@echo "  make copy-database FROM=foo DTO=bar LIMIT=1000000 THREADS=4 BATCH=30 HOST=localhost PORT=8000 USER=admin PASS=admin"
 
 # Install rule
 .PHONY: install
