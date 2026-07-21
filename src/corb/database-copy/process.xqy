@@ -16,7 +16,8 @@ let $properties := xdmp:document-properties($uri)/*[
   fn:node-name(.) ne xs:QName("prop:last-modified")
 ]
 let $metadata := xdmp:document-get-metadata($uri)
-return
+let $_ := xdmp:log('Inserting [' || $uri || '] in [' || $TARGET || ']')
+return try {
   xdmp:invoke-function(
     function() {
       xdmp:document-insert(
@@ -37,3 +38,6 @@ return
       <transaction-mode>update</transaction-mode>
     </options>
   )
+} catch ($e) {
+  xdmp:log("Error processing " || $uri)
+}
