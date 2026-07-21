@@ -71,9 +71,9 @@ fi
 printf 'Counting documents in %s...\n' "$FROM"
 count_result=$(eval_query \
   'xquery version "1.0-ml"; xdmp:estimate(fn:doc())' "$FROM")
-if [[ $count_result =~ \"value\"[[:space:]]*:[[:space:]]*\"?([0-9]+) ]]; then
+if [[ $count_result =~ ([0-9]+)[^0-9]*--[a-f0-9]+-+$ ]]; then
   total=${BASH_REMATCH[1]}
-elif [[ $count_result =~ ^[[:space:]]*([0-9]+)[[:space:]]*$ ]]; then
+elif [[ $count_result =~ ([0-9]+) ]]; then
   total=${BASH_REMATCH[1]}
 else
   printf 'Could not parse document count from MarkLogic response: %s\n' "$count_result" >&2
