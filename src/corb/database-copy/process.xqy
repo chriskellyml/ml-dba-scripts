@@ -57,7 +57,7 @@ return local:in-target(
       else (),
       xdmp:document-set-metadata($uri, if (fn:exists($meta)) then $meta else map:map())
     } catch($e) {
-      xdmp:log("Error: "|| $e/*:code/fn:string() || " while processing uri " || $uri
+      xdmp:log("Error: "|| $e/*:code/fn:string() || " while processing uri " || $uri)
     }
   }
 )
