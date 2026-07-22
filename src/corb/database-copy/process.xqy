@@ -17,7 +17,7 @@ let $_ := xdmp:log("Processing " || count($uris) || " uris. First is: " || $uris
 for $uri in $uris 
 (: Read from source. xdmp:invoke-function returns item()* so JSON
    nodes, XML nodes, binary nodes and text all pass through intact. :)
-let $_ := local-in-source(function() {
+let $_ := local:in-source(function() {
   if (not(doc-available($uri)))
   then fn:error((), "URI not availble: " || $uri )
   else ()
