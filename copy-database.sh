@@ -93,12 +93,22 @@ fi
 printf 'Copying %d documents in %d page(s), up to %d documents per page.\n' \
   "$total" "$pages" "$LIMIT"
 
-for ((page = 1; page <= pages; page++)); do
-  printf 'Running CoRB page %d of %d...\n' "$page" "$pages"
+run_corb() {
   gradle --no-daemon --console=plain -p "$ROOT" corb \
     -Phost="$HOST" -Pport="$PORT" -Pusername="$USER" \
-    -Psource="$FROM" -Ptarget="$TARGET" -Plimit="$LIMIT" -Ppage="$page" \
-    -Pthreads="$THREADS" -Pbatch="$BATCH"
+    -Psource="$FROM" -Ptarget="$TARGET" -Plimit="$LIMIT" -Ppage="$1" \
+    -Pthreads="$THREADS" -Pbatch="$BATCH" 2>&1 | {
+      while IFS= read -r line || [[ -n $line ]]; do
+        [[ $line == *com.marklogic* ]] && continue
+        printf '\033[90m%s\033[0m\n' "$line"
+      done
+    }
+  return "${PIPESTATUS[0]}"
+}
+
+for ((page = 1; page <= pages; page++)); do
+  printf 'Running CoRB page %d of %d...\n' "$page" "$pages"
+  run_corb "$page"
 done
 
 printf 'Database copy complete.\n'
