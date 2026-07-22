@@ -6,11 +6,12 @@ declare namespace sec  = "http://marklogic.com/xdmp/security";
 declare variable $URI    as xs:string external;
 declare variable $SOURCE as xs:string external;
 declare variable $TARGET as xs:string external;
+
 declare private variable $SRC-OPTS := <options xmlns="xdmp:eval"><database>{ xdmp:database($SOURCE) }</database></options>;
 declare private variable $TGT-OPTS := <options xmlns="xdmp:eval"><database>{ xdmp:database($TARGET) }</database><transaction-mode>update</transaction-mode></options>;
 
 declare private function local:in-source($fn) { xdmp:invoke-function($fn , $SRC-OPTS) };
-declare private function local:in-target($fn) { xdmp:invoke-function($fn , $SRC-OPTS) };
+declare private function local:in-target($fn) { xdmp:invoke-function($fn , $TGT-OPTS) };
 
 let $uris := fn:tokenize($URI, ";")
 let $_ := xdmp:log("Processing " || count($uris) || " uris. First is: " || $uris[1])
@@ -39,7 +40,7 @@ let $node := local:in-source(function() {
   return 
     if (empty($data))
     then fn:error((), "Empty data for URI " || $uri)
-    else ()
+    else $data 
 })
 
 (: Write into target database :)
