@@ -50,10 +50,14 @@ return local:in-target(
 "Now placing uri: " || $uri || ' in database ' || xdmp:database-name(xdmp:database()) || ". Size is " || fn:string-length(xdmp:quote($node))
 
     )),
-    xdmp:document-insert($uri, $node, $perms, $colls, xs:integer($quality)),
-    if (fn:exists($props))
-    then xdmp:document-set-properties($uri, $props)
-    else (),
-    xdmp:document-set-metadata($uri, if (fn:exists($meta)) then $meta else map:map())
+    try {
+      xdmp:document-insert($uri, $node, $perms, $colls, xs:integer($quality)),
+      if (fn:exists($props))
+      then xdmp:document-set-properties($uri, $props)
+      else (),
+      xdmp:document-set-metadata($uri, if (fn:exists($meta)) then $meta else map:map())
+    } catch($e) {
+      xdmp:log("Error: "|| $e/*:code/fn:string() || " while processing uri " || $uri
+    }
   }
 )
