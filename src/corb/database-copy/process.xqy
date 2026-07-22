@@ -45,6 +45,10 @@ let $node := local:in-source(function() {
 (: Write into target database :)
 return local:in-target(
   function() {
+    xdmp:log((
+"Now placing uri: " || $uri || ' in database ' || xdmp:database-name(xdmp:database()) || ". Size is " || fn:string-length(xdmp:quote($node))
+
+    ))
     xdmp:document-insert($uri, $node, $perms, $colls, xs:integer($quality)),
     if (fn:exists($props))
     then xdmp:document-set-properties($uri, $props)
