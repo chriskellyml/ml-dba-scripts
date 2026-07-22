@@ -8,7 +8,7 @@ declare variable $SOURCE as xs:string external;
 declare variable $TARGET as xs:string external;
 
 declare private variable $SRC-OPTS := <options xmlns="xdmp:eval"><database>{ xdmp:database($SOURCE) }</database></options>;
-declare private variable $TGT-OPTS := <options xmlns="xdmp:eval"><database>{ xdmp:database($TARGET) }</database><transaction-mode>update</transaction-mode></options>;
+declare private variable $TGT-OPTS := <options xmlns="xdmp:eval"><database>{ xdmp:database($TARGET) }</database><transaction-mode>update-auto-commit</transaction-mode></options>;
 
 declare private function local:in-source($fn) { xdmp:invoke-function($fn , $SRC-OPTS) };
 declare private function local:in-target($fn) { xdmp:invoke-function($fn , $TGT-OPTS) };
@@ -46,18 +46,10 @@ let $node := local:in-source(function() {
 (: Write into target database :)
 return local:in-target(
   function() {
-    xdmp:log((
-"Now placing uri: " || $uri || ' in database ' || xdmp:database-name(xdmp:database()) || ". Size is " || fn:string-length(xdmp:quote($node))
-
-    )),
-    try {
       xdmp:document-insert($uri, $node, $perms, $colls, xs:integer($quality)),
       if (fn:exists($props))
       then xdmp:document-set-properties($uri, $props)
       else (),
       xdmp:document-set-metadata($uri, if (fn:exists($meta)) then $meta else map:map())
-    } catch($e) {
-      xdmp:log("Error: "|| $e/*:code/fn:string() || " while processing uri " || $uri)
-    }
   }
 )
